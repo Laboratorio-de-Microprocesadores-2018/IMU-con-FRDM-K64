@@ -1,0 +1,198 @@
+/////////////////////////////////////////////////////////////////////////////////
+//                              CONTROL DE ACCESO                              //
+//          Grupo 3 - Laboratorio de Microprocesadores - ITBA - 2018           //
+//	                                                                           //
+/////////////////////////////////////////////////////////////////////////////////
+
+/*
+ * @file CAN.h
+ * @author Tobías Lifschitz
+ * @date 12 sep. 2018
+ *
+ */
+
+#ifndef CAN_H_
+#define CAN_H_
+
+/////////////////////////////////////////////////////////////////////////////////
+//                             Included header files                           //
+/////////////////////////////////////////////////////////////////////////////////
+#include "stdbool.h"
+#include "stdint.h"
+#include "MK64F12.h"
+
+/////////////////////////////////////////////////////////////////////////////////
+//                    Enumerations, structures and typedefs                    //
+/////////////////////////////////////////////////////////////////////////////////
+
+typedef enum {CAN_SUCCESS,CAN_FAILED,CAN_ERROR,CAN_NON_STD_BAUD,CAN_RX_BUSY,CAN_RX_OVERFLOW}CAN_Status;
+
+typedef enum {CAN_OSC_CLOCK,CAN_PERI_CLOCK}CAN_ClockSource;
+
+typedef enum {CAN_SINGLE_SAMPLE,CAN_TRIPLE_SAMPLE}CAN_SamplingMode;
+
+typedef struct{
+	uint32_t baudRate;		 // CAN baud rate in bps.
+	CAN_ClockSource clkSrc; // Clock source for CAN Protocol Engine.
+	CAN_SamplingMode sampling;
+	uint8_t maxMbNum;		 // The maximum number of Message Buffers used by user.
+	bool enableLoopBack; 	 // Enable or Disable Loop Back Self Test Mode.
+	bool enableRxMBIndividulMask; // Enable individual masks for MB (if not use global masks, see MCR[IMRQ]).
+}CAN_Config;
+
+typedef struct{
+	uint8_t 	preDivider;	// Clock Pre-scaler Division Factor.
+	uint8_t 	rJumpwidth;	// Re-sync Jump Width (in quantas).
+	uint8_t 	phaseSeg1;	// Phase Segment 1 (in quantas).
+	uint8_t 	phaseSeg2;	// Phase Segment 2 (in quantas).
+	uint8_t 	propSeg;	// Propagation Segment (in quantas).
+}CAN_Timing;
+
+
+typedef struct{
+	uint32_t ID;
+	uint32_t length;
+	union{
+		struct{
+			uint32_t dataWord0;
+			uint32_t dataWord1;
+		};
+		struct{
+			uint8_t dataByte0;
+			uint8_t dataByte1;
+			uint8_t dataByte2;
+			uint8_t dataByte3;
+			uint8_t dataByte4;
+			uint8_t dataByte5;
+			uint8_t dataByte6;
+			uint8_t dataByte7;
+		};
+		uint8_t data[8];
+	};
+}CAN_DataFrame;
+
+/////////////////////////////////////////////////////////////////////////////////
+//                         Global function prototypes                          //
+/////////////////////////////////////////////////////////////////////////////////
+
+/*
+ * @brief Returns the default configuration for CAN module.
+ * @param config Pointer to struct to store default configuration.
+ */
+void CAN_GetDefaultConfig(CAN_Config * config);
+
+/*
+ * @brief Initialize CAN module
+ * @param config Pointer to a struct containing module configuration.
+ * @param clockHz Protocol Engine clock source frequency in Hz.
+ */
+CAN_Status CAN_Init(CAN_Type * base, CAN_Config * config, uint32_t sourceClockHz );
+
+/*
+ * @brief Disable CAN module clock and reset all registers.
+ * @param base CAN peripheral base address.
+ */
+void CAN_Deinit(CAN_Type * base);
+
+/**
+ * @brief Enable the CAN module.
+ * @param base CAN peripheral base address.
+ */
+void CAN_Enable(CAN_Type * base);
+
+/**
+ * @brief Disable the CAN module.
+ * @param base CAN peripheral base address..
+ */
+void CAN_Disable(CAN_Type * base);
+
+
+
+
+
+
+/*
+ * @brief Configure a message buffer for receiving.
+ * @param base CAN peripheral base address
+ * @param index Number of message buffer.
+ * @param config Pointer to struct containing MB Rx configuration
+ */
+void  CAN_ConfigureRxMB(CAN_Type * base,uint8_t index,uint32_t ID);
+
+
+
+/*
+ * @brief Poll the flag status of a message buffer.
+ * @param base CAN peripheral base address
+ * @param index Number of message buffer.
+ * @return True if a message was sent/received, false if not.
+ */
+bool CAN_GetMbStatusFlag(CAN_Type * base,uint8_t index);
+
+/*
+ * @brief Clear the interrupt flag of the indicated message buffer
+ * @param base CAN peripheral base address
+ * @param index Number of message buffer.
+ */
+void CAN_ClearMbStatusFlag(CAN_Type * base,uint8_t index);
+
+
+/*
+ * @brief Read a frame from a message buffer.
+ * @param base CAN peripheral base address
+ * @param index Number of message buffer to read.
+ * @param frame Pointer to frame to store received data.
+ * @return
+ */
+CAN_Status CAN_ReadRxMB(CAN_Type * base,uint8_t index, CAN_DataFrame * frame);
+
+/*
+ * @brief Write a frame to a message buffer to be sent.
+ * @param base CAN peripheral base address
+ * @param index Number of message buffer to write.
+ * @param frame Pointer to frame to be sent.
+ * @return
+ */
+CAN_Status CAN_WriteTxMB(CAN_Type * base,uint8_t index, CAN_DataFrame * frame);
+
+/*
+ >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>CAN_Init
+ CAN_Deinit
+ >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>CAN_GetDefaultConfig
+
+ CAN_SetTimingConfig
+ CAN_SetRxMbGlobalMask
+ CAN_SetRxFifoGlobalMask
+ CAN_SetRxIndividualMask
+ CAN_SetTxMbConfig
+ CAN_SetRxMbConfig
+ CAN_SetRxFifoConfig
+ CAN_GetStatusFlags
+ CAN_ClearStatusFlags
+ CAN_GetBusErrCount
+ CAN_GetMbStatusFlags
+ CAN_ClearMbStatusFlags
+
+ CAN_EnableInterrupts
+ CAN_DisableInterrupts
+ CAN_EnableMbInterrupts
+ CAN_DisableMbInterrupts
+
+ CAN_Enable
+ CAN_WriteTxMb
+ CAN_ReadRxMb
+ CAN_ReadRxFifo
+
+ CAN_TransferSendBlocking
+ CAN_TransferReceiveBlocking
+ CAN_TransferReceiveFifoBlocking
+ CAN_TransferCreateHandle
+ CAN_TransferSendNonBlocking
+ CAN_TransferReceiveNonBlocking
+ CAN_TransferReceiveFifoNonBlocking
+ CAN_TransferAbortSend
+ CAN_TransferAbortReceive
+ CAN_TransferAbortReceiveFifo
+ CAN_TransferHandleIRQ*/
+
+#endif /* CAN_H_ */
