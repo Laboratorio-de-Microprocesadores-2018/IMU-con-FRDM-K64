@@ -1,5 +1,5 @@
 /////////////////////////////////////////////////////////////////////////////////
-//                              CONTROL DE ACCESO                              //
+//                       Intertial Motion Unit (IMU)                           //
 //          Grupo 3 - Laboratorio de Microprocesadores - ITBA - 2018           //
 //	                                                                           //
 /////////////////////////////////////////////////////////////////////////////////
@@ -31,6 +31,16 @@ typedef enum {CAN_OSC_CLOCK,CAN_PERI_CLOCK}CAN_ClockSource;
 
 typedef enum {CAN_SINGLE_SAMPLE,CAN_TRIPLE_SAMPLE}CAN_SamplingMode;
 
+typedef enum {
+  CAN_BUS_OFF_INTERRUPT = CAN_CTRL1_BOFFMSK_MASK,
+  CAN_EROR_INTERRUPT = CAN_CTRL1_ERRMSK_MASK,
+  CAN_RX_WARNING_INTERRUPT = CAN_CTRL1_RWRNMSK_MASK,
+  CAN_TX_WARNING_INTERRUPT = CAN_CTRL1_TWRNMSK_MASK,
+  CAN_WAKE_UP_INTERRUPT = CAN_MCR_WAKMSK_MASK
+} CAN__Interrupt;
+
+
+
 typedef struct{
 	uint32_t baudRate;		 // CAN baud rate in bps.
 	CAN_ClockSource clkSrc; // Clock source for CAN Protocol Engine.
@@ -38,7 +48,12 @@ typedef struct{
 	uint8_t maxMbNum;		 // The maximum number of Message Buffers used by user.
 	bool enableLoopBack; 	 // Enable or Disable Loop Back Self Test Mode.
 	bool enableRxMBIndividulMask; // Enable individual masks for MB (if not use global masks, see MCR[IMRQ]).
+	uint32_t RxMBGlobalMask; // Global mask used during matching process if individual MB masking is disabled.
 }CAN_Config;
+
+typedef struct{
+
+}CAN_FIFOConfig;
 
 typedef struct{
 	uint8_t 	preDivider;	// Clock Pre-scaler Division Factor.
@@ -70,6 +85,9 @@ typedef struct{
 		uint8_t data[8];
 	};
 }CAN_DataFrame;
+
+
+typedef void (*CAN_MB_Callback)(CAN_DataFrame frame,CAN_Status status, void * data);
 
 /////////////////////////////////////////////////////////////////////////////////
 //                         Global function prototypes                          //
@@ -111,7 +129,7 @@ void CAN_Disable(CAN_Type * base);
 
 
 
-/*
+/**
  * @brief Configure a message buffer for receiving.
  * @param base CAN peripheral base address
  * @param index Number of message buffer.
@@ -120,8 +138,30 @@ void CAN_Disable(CAN_Type * base);
 void  CAN_ConfigureRxMB(CAN_Type * base,uint8_t index,uint32_t ID);
 
 
+/**
+ * @breif Enable interrupt of a message buffer and attach a callback.
+ * @param base CAN peripheral base address
+ * @param index Number of message buffer.
+ * @param config Pointer to struct containing MB Rx configuration
+ */
+void CAN_EnableMbInterrupts	(CAN_Type * base, uint8_t index, CAN_MB_Callback callback);
 
-/*
+/**
+ *
+ */
+CAN_Status CAN_ConfigureRxFifo(CAN_Type * base, CAN_FIFOConfig * config);
+
+/**
+ * @brief Sets the global mask for CAN message buffers during matching process.
+ *
+ * Note that the configuration is only effective when the Rx individual mask
+ * is disabled when calling CAN_Init().
+ *
+ */
+void CAN_SetRxMbGlobalMask	(CAN_Type *	base, uint32_t 	mask);
+
+
+/**
  * @brief Poll the flag status of a message buffer.
  * @param base CAN peripheral base address
  * @param index Number of message buffer.
@@ -129,7 +169,7 @@ void  CAN_ConfigureRxMB(CAN_Type * base,uint8_t index,uint32_t ID);
  */
 bool CAN_GetMbStatusFlag(CAN_Type * base,uint8_t index);
 
-/*
+/**
  * @brief Clear the interrupt flag of the indicated message buffer
  * @param base CAN peripheral base address
  * @param index Number of message buffer.

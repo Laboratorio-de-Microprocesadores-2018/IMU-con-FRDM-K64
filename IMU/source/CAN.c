@@ -15,6 +15,7 @@
 #include "CAN.h"
 #include "MK64F12.h"
 #include "Board.h"
+#include "stdlib.h"
 
 #define PIN_CAN0_TX PORTNUM2PIN(PB,18)
 #define PIN_CAN0_RX PORTNUM2PIN(PB,19)
@@ -53,8 +54,9 @@ typedef struct{
 
 static void CAN_Freeze(CAN_Type * base, bool freeze);
 
-
-
+// Static array to store messaage buffer callbacks
+static CAN_MB_Callback callbacks[CAN_CS_COUNT];
+static void * callbacksData[CAN_CS_COUNT];
 
 void CAN_GetDefaultConfig(CAN_Config * config)
 {
@@ -144,6 +146,8 @@ CAN_Status CAN_Init(CAN_Type * base, CAN_Config * config, uint32_t sourceClockHz
 
 	if(config->enableRxMBIndividulMask == true)
 		base->MCR |= CAN_MCR_IRMQ_MASK;
+	else
+		base->RXMGMASK = config->RxMBGlobalMask;
 
 	// Reset all message buffers
 	for(int i=0; i<CAN_CS_COUNT; i++)
@@ -204,6 +208,28 @@ void  CAN_ConfigureRxMB(CAN_Type * base, uint8_t index, uint32_t ID)
 
 	/// Write the EMPTY code to the CODE field of the Control and Status word to activate the Mailbox.
 	base->MB[index].CS = CAN_CS_CODE(RX_EMPTY) | CAN_CS_IDE(0);
+}
+
+
+void CAN_EnableMbInterrupts	(CAN_Type * base, uint8_t index, CAN_MB_Callback callback)
+{
+	base->IMASK1 |= (1UL<<index);
+	callbacks[index] = callback;
+}
+
+void CAN_DisableMbInterrupts	(CAN_Type * base, uint8_t index)
+{
+	base->IMASK1 &= ~(1UL<<index);
+	callbacks[index] = NULL;
+}
+
+
+
+void CAN_SetRxMbGlobalMask	(CAN_Type *	base, uint32_t 	mask)
+{
+	CAN_Freeze(base,true);
+	base->RXMGMASK = mask;
+	CAN_Freeze(base,false);
 }
 
 bool CAN_GetMbStatusFlag(CAN_Type * base,uint8_t index)
@@ -313,7 +339,17 @@ void CAN0_ORed_Message_buffer_IRQHandler(void)
 	}
 	else
 	{
+		CAN_DataFrame frame;
+		for(int i=0; i<CAN_CS_COUNT; i++)
+		{
+			if( CAN0->IFLAG1 & (1<<i) )
+			{
+				CAN_Status s = CAN_ReadRxMB(CAN0,i,&frame);
+				callbacks[i](frame,s,callbacksData[i]);
+				CAN0->IFLAG1 |= (1<<i);
 
+			}
+		}
 	}
 }/*
 
