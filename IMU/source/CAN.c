@@ -21,6 +21,15 @@
 #define PIN_CAN0_RX PORTNUM2PIN(PB,19)
 #define PIN_CAN0_STB PORTNUM2PIN(PC,1)
 
+// Uncomment this define to raise a pin when in a CAN function
+//#define MEASURE_CAN
+
+#ifdef MEASURE_CAN
+	#define MEASURE_CAN_PORT PORTC
+	#define MEASURE_CAN_GPIO GPIOC
+	#define MEASURE_CAN_PIN	8
+#endif
+
 typedef enum{RX_INACTIVE = 0b0000,
 			 RX_EMPTY    = 0b0100,
 		     RX_FULL     = 0b0010,
@@ -65,6 +74,7 @@ void CAN_GetDefaultConfig(CAN_Config * config)
 	 config->baudRate = 125000U;
 	 config->maxMbNum = 16;
 	 config->enableLoopBack = false;
+	 config->enableSelfReception = false;
 	 config->enableRxMBIndividulMask = true;
 }
 
@@ -87,7 +97,11 @@ CAN_Status CAN_Init(CAN_Type * base, CAN_Config * config, uint32_t sourceClockHz
 	uint32_t PCR = PORT_PCR_MUX(2) | PORT_PCR_PE_MASK | PORT_PCR_PS_MASK; // REVISAR COMO CONFIGURAR BIEN EL PCR
 	ports[PIN_CAN0_TX/32]->PCR[PIN_CAN0_TX%32] = PCR;
 	ports[PIN_CAN0_RX/32]->PCR[PIN_CAN0_RX%32] = PCR;
-
+#ifdef MEASURE_CAN
+	MEASURE_CAN_PORT->PCR[MEASURE_CAN_PIN] = PORT_PCR_MUX(1);
+	MEASURE_CAN_GPIO->PDDR |= (1<<MEASURE_CAN_PIN);
+	MEASURE_CAN_GPIO->PDOR &= ~(1<<MEASURE_CAN_PIN);
+#endif
 
 	/// Disable CAN module in order to modify registers
 	CAN_Disable(base);
@@ -138,8 +152,14 @@ CAN_Status CAN_Init(CAN_Type * base, CAN_Config * config, uint32_t sourceClockHz
 	if(i==nBaudSettings)
 		return CAN_NON_STD_BAUD;
 
+	if(config->enableSelfReception == false)
+		base->MCR |= CAN_MCR_SRXDIS_MASK;
+
 	if(config->enableLoopBack == true)
-		base->CTRL1 |= CAN_CTRL1_LPB_MASK;//base->MCR |= CAN_MCR_SRXDIS_MASK; ?? SELF RECEPTION
+	{
+		base->CTRL1 |= CAN_CTRL1_LPB_MASK;
+		base->MCR &= ~CAN_MCR_SRXDIS_MASK;
+	}
 
 	if(config->sampling == CAN_TRIPLE_SAMPLE)
 		base->CTRL1 |= CAN_CTRL1_SMP_MASK;
@@ -154,6 +174,7 @@ CAN_Status CAN_Init(CAN_Type * base, CAN_Config * config, uint32_t sourceClockHz
 	{
 		base->MB[i].CS = ( base->MB[i].CS &= ~CAN_CS_CODE_MASK ) | CAN_CS_CODE(RX_INACTIVE);
 		base->MB[i].ID = CAN_ID_STD(0);
+		base->RXIMR[i] = 0xFFFFFFFF;
 	}
 
 	// Exit Freeze mode
@@ -213,6 +234,7 @@ void  CAN_ConfigureRxMB(CAN_Type * base, uint8_t index, uint32_t ID)
 
 void CAN_EnableMbInterrupts	(CAN_Type * base, uint8_t index, CAN_MB_Callback callback)
 {
+	NVIC_EnableIRQ(CAN0_ORed_Message_buffer_IRQn);
 	base->IMASK1 |= (1UL<<index);
 	callbacks[index] = callback;
 }
@@ -231,6 +253,12 @@ void CAN_SetRxMbGlobalMask	(CAN_Type *	base, uint32_t 	mask)
 	base->RXMGMASK = mask;
 	CAN_Freeze(base,false);
 }
+void CAN_SetRxIndividualMask (CAN_Type *	base, uint8_t index, uint32_t 	mask)
+{
+	CAN_Freeze(base,true);
+	base->RXIMR[index] = mask;
+	CAN_Freeze(base,false);
+}
 
 bool CAN_GetMbStatusFlag(CAN_Type * base,uint8_t index)
 {
@@ -244,6 +272,9 @@ void CAN_ClearMbStatusFlag(CAN_Type * base,uint8_t index)
 
 CAN_Status CAN_ReadRxMB(CAN_Type * base,uint8_t index, CAN_DataFrame * frame)
 {
+#ifdef MEASURE_CAN
+	BITBAND_REG(MEASURE_CAN_GPIO->PDOR, MEASURE_CAN_PIN) = 1;
+#endif
 
 	/// Check if the BUSY bit is deasserted.
 	if(base->MB[index].CS>>CAN_CS_CODE_SHIFT & 1UL)
@@ -261,9 +292,18 @@ CAN_Status CAN_ReadRxMB(CAN_Type * base,uint8_t index, CAN_DataFrame * frame)
 		/// Read the contents of the Mailbox.
 		frame->ID = (base->MB[index].ID & CAN_ID_STD_MASK)>> CAN_ID_STD_SHIFT;
 		frame->length = (base->MB[index].CS & CAN_CS_DLC_MASK) >> CAN_CS_DLC_SHIFT;
-		frame->dataWord0 = base->MB[index].WORD0;
-		frame->dataWord1 = base->MB[index].WORD1;
 
+		uint32_t W0 = base->MB[index].WORD0;
+		frame->dataWord0 =  ((W0 & CAN_WORD0_DATA_BYTE_0_MASK)>>24)|
+							((W0 & CAN_WORD0_DATA_BYTE_1_MASK)>>8)|
+							((W0 & CAN_WORD0_DATA_BYTE_2_MASK)<<8)|
+							((W0 & CAN_WORD0_DATA_BYTE_3_MASK)<<24);
+
+		uint32_t W1 = base->MB[index].WORD1;
+		frame->dataWord1 =  ((W1 & CAN_WORD1_DATA_BYTE_4_MASK)>>24)|
+							((W1 & CAN_WORD1_DATA_BYTE_5_MASK)>>8)|
+							((W1 & CAN_WORD1_DATA_BYTE_6_MASK)<<8)|
+							((W1 & CAN_WORD1_DATA_BYTE_7_MASK)<<24);
 		/// Acknowledge the proper flag at IFLAG registers.
 		base->IFLAG1 |= (1<<index); // W1C
 
@@ -277,6 +317,10 @@ CAN_Status CAN_ReadRxMB(CAN_Type * base,uint8_t index, CAN_DataFrame * frame)
 		retVal =  CAN_RX_OVERFLOW;
 		break;
 	}
+
+#ifdef MEASURE_CAN
+	BITBAND_REG(MEASURE_CAN_GPIO->PDOR, MEASURE_CAN_PIN) = 0;
+#endif
 	return retVal;
 }
 
@@ -284,6 +328,10 @@ CAN_Status CAN_ReadRxMB(CAN_Type * base,uint8_t index, CAN_DataFrame * frame)
 
 CAN_Status  CAN_WriteTxMB(CAN_Type * base,uint8_t index, CAN_DataFrame * frame)
 {
+#ifdef MEASURE_CAN
+	BITBAND_REG(MEASURE_CAN_GPIO->PDOR, MEASURE_CAN_PIN) = 1;
+#endif
+	CAN_Status retVal;
 	if(index < CAN_CS_COUNT) // CHEQUEAR QUE NO PERTENEZCA A LA FIFO SI ESTA ACTIVA
 	{
 		/// Check whether the respective interrupt bit is set and clear it.
@@ -296,27 +344,34 @@ CAN_Status  CAN_WriteTxMB(CAN_Type * base,uint8_t index, CAN_DataFrame * frame)
 		/// Write the ID word.
 		base->MB[index].ID = CAN_ID_STD(frame->ID);
 
-		/// Write the data bytes.
-		base->MB[index].WORD0 = frame->dataWord0;
-		base->MB[index].WORD1 = frame->dataWord1;
+		/// Write the data bytes in order using macros.
+		base->MB[index].WORD0 = CAN_WORD0_DATA_BYTE_0(frame->dataWord0) |
+		                    	CAN_WORD0_DATA_BYTE_1(frame->dataWord0) |
+		                    	CAN_WORD0_DATA_BYTE_2(frame->dataWord0) |
+		                    	CAN_WORD0_DATA_BYTE_3(frame->dataWord0);
+		base->MB[index].WORD1 = CAN_WORD1_DATA_BYTE_4(frame->dataWord1) |
+		                        CAN_WORD1_DATA_BYTE_5(frame->dataWord1) |
+		                    	CAN_WORD1_DATA_BYTE_6(frame->dataWord1) |
+		                    	CAN_WORD1_DATA_BYTE_7(frame->dataWord1);
 
 		/// Write the DLC and CODE fields of the Control and Status word to activate the MB.
-		base->MB[index].CS = CAN_CS_CODE(TX_DATA) | CAN_CS_DLC(frame->length) | CAN_CS_SRR(1);
+		base->MB[index].CS = CAN_CS_CODE(TX_DATA) | CAN_CS_DLC(frame->length) | CAN_CS_SRR(1) | CAN_CS_IDE(0);
 
 
-		return CAN_SUCCESS;
+		retVal = CAN_SUCCESS;
 	}
 	else
-		return CAN_ERROR;
+		retVal = CAN_ERROR;
+
+#ifdef MEASURE_CAN
+	BITBAND_REG(MEASURE_CAN_GPIO->PDOR, MEASURE_CAN_PIN) = 0;
+#endif
+	return retVal;
 }
 
 
 
 // CUANDO INICIALICE LA FIFO CONFIGURAR EL IDAM
-
-
-
-
 
 
 /*
@@ -326,12 +381,14 @@ NVIC_EnableIRQ(CAN_Tx_Warning_IRQSn);
 NVIC_EnableIRQ(CAN_Wake_Up_IRQSn);
 NVIC_EnableIRQ(CAN_Error_IRQSn);
 NVIC_EnableIRQ(CAN_Bus_Off_IRQSn);
-NVIC_EnableIRQ(CAN_ORed_Message_buffer_IRQSn);*/
+*/
 
 
 void CAN0_ORed_Message_buffer_IRQHandler(void)
 {
-/// ACA CHEQUEAR CAN0->IFLAG1!!!
+#ifdef MEASURE_CAN
+	BITBAND_REG(MEASURE_CAN_GPIO->PDOR, MEASURE_CAN_PIN) = 1;
+#endif
 	/// If Rx FIFO is enabled
 	if(CAN0->MCR & CAN_MCR_RFEN_MASK)
 	{
@@ -344,15 +401,20 @@ void CAN0_ORed_Message_buffer_IRQHandler(void)
 		{
 			if( CAN0->IFLAG1 & (1<<i) )
 			{
-				CAN_Status s = CAN_ReadRxMB(CAN0,i,&frame);
-				callbacks[i](frame,s,callbacksData[i]);
-				CAN0->IFLAG1 |= (1<<i);
-
+				if(((CAN0->MB[i].CS&CAN_CS_CODE_MASK)>>CAN_CS_CODE_SHIFT)==RX_FULL)
+				{
+					CAN_Status s = CAN_ReadRxMB(CAN0,i,&frame);
+					callbacks[i](frame,s,callbacksData[i]);
+				}
 			}
 		}
 	}
-}/*
+#ifdef MEASURE_CAN
+	BITBAND_REG(MEASURE_CAN_GPIO->PDOR, MEASURE_CAN_PIN) = 0;
+#endif
+}
 
+/*
 The interrupt sources for Bus Off, Error, Wake Up, Tx Warning, and Rx Warning
 generate interrupts like the MB interrupt sources, and they can be read from ESR1 and
 ESR2. The Bus Off, Error, Tx Warning, and Rx Warning interrupt mask bits are located
@@ -426,12 +488,12 @@ static void CAN_Freeze(CAN_Type * base, bool freeze)
 	{
 		base->MCR |= CAN_MCR_HALT_MASK;
 		// Wait until module goes into freeze mode (MCR[FRZ_ACK] = 1).
-		while(~((base->MCR&CAN_MCR_FRZACK_MASK)>>CAN_MCR_FRZACK_SHIFT));
+		while((base->MCR & CAN_MCR_FRZACK_MASK)!=CAN_MCR_FRZACK_MASK);
 	}
 	else
 	{
 		base->MCR &= ~CAN_MCR_HALT_MASK;
 		// Wait until module goes out freeze mode (MCR[FRZ_ACK] = 0).
-		while((base->MCR&CAN_MCR_FRZACK_MASK)>>CAN_MCR_FRZACK_SHIFT);
+		while((base->MCR & CAN_MCR_FRZACK_MASK)==CAN_MCR_FRZACK_MASK);
 	}
 }

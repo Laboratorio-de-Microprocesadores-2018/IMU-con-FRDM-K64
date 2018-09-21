@@ -47,6 +47,7 @@ typedef struct{
 	CAN_SamplingMode sampling;
 	uint8_t maxMbNum;		 // The maximum number of Message Buffers used by user.
 	bool enableLoopBack; 	 // Enable or Disable Loop Back Self Test Mode.
+	bool enableSelfReception;
 	bool enableRxMBIndividulMask; // Enable individual masks for MB (if not use global masks, see MCR[IMRQ]).
 	uint32_t RxMBGlobalMask; // Global mask used during matching process if individual MB masking is disabled.
 }CAN_Config;
@@ -159,7 +160,7 @@ CAN_Status CAN_ConfigureRxFifo(CAN_Type * base, CAN_FIFOConfig * config);
  *
  */
 void CAN_SetRxMbGlobalMask	(CAN_Type *	base, uint32_t 	mask);
-
+void CAN_SetRxIndividualMask (CAN_Type *	base, uint8_t index, uint32_t 	mask);
 
 /**
  * @brief Poll the flag status of a message buffer.
