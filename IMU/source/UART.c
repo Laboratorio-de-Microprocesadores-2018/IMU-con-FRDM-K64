@@ -8,9 +8,14 @@
 #include <stdint.h>
 #include "hardware.h"
 #include "UART.h"
+#include "SysTick.h"
 
 
-#define UART_HAL_DEFAULT_BAUDRATE 9600
+#define UART_HAL_DEFAULT_BAUDRATE	9600
+
+#define UART_CALL_FREQUENCY			100
+
+#define UART_BUFFERSIZE				5
 
 #define UART0_TX_PIN 	17   //PTB17
 #define UART0_RX_PIN 	16   //PTB16
@@ -41,9 +46,15 @@ typedef enum
 	PORT_eInterruptAsserted		= 0x0C,
 } PORTEvent_t;
 
+static int sendFlag;
+static int recieveFlag;
+
+static char message;
+
+static void UARTPisr(void);
 
 
-void UART_Init (void)
+void UARTInit (void)
 {
 
 // Note: 5.6 Clock Gating page 192
@@ -86,14 +97,13 @@ void UART_Init (void)
 
 	UART0->C2 = UART_C2_TE_MASK | UART_C2_RE_MASK;
 
-
-
-
+	/*	The callback of the display is added to the sysTick callback list*/
+	sysTickAddCallback(&UARTPisr,(float)(1/UART_CALL_FREQUENCY));
 
 }
 
 
-void UART_SetBaudRate (UART_Type *uart, uint32_t baudrate)
+void UARTSetBaudRate (UART_Type *uart, uint32_t baudrate)
 {
 	uint16_t sbr, brfa;
 	uint32_t clock;
@@ -111,20 +121,34 @@ void UART_SetBaudRate (UART_Type *uart, uint32_t baudrate)
 	uart->C4 = (uart->C4 & ~UART_C4_BRFA_MASK) | UART_C4_BRFA(brfa);
 }
 
-
-
-void UART_Send_Data(unsigned char tx_data)
+void UARTPisr(void)
 {
-	while(((UART0->S1)& UART_S1_TDRE_MASK) ==0);
+	if(sendFlag == TRUE){
+		if(((UART0->S1)& UART_S1_TDRE_MASK) == 0)
+		{
+			UART0->D = message;
+			sendFlag = 0;
+		}
+	}else if(recieveFlag == TRUE)
+	{
+		if(((UART0->S1)& UART_S1_RDRF_MASK) == 0)
+		{
+			message = UART0->D;
+		}
+	}
 
-				UART0->D = tx_data;
 }
 
-unsigned char UART_Recieve_Data(void)
+void UARTSendData(unsigned char tx_data)
 {
-	while(((UART0->S1)& UART_S1_RDRF_MASK) ==0);
+	SendFlag = TRUE;
+	message = tx_data;
+}
 
-			return(UART0->D);
+unsigned char UARTRecieveData(void)
+{
+	ReciveFlag = TRUE;
+	return message;
 }
 
 

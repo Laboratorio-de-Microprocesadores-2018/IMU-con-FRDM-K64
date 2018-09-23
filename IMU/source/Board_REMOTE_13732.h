@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 /////////////////////////////////////////////////////////////////////////////////
 //                              CONTROL DE ACCESO                              //
 //          Grupo 3 - Laboratorio de Microprocesadores - ITBA - 2018           //
