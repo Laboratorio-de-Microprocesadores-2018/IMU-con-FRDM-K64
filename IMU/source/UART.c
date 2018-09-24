@@ -79,7 +79,7 @@ void UARTInit (void)
 
 	    //UART0 Set UART Speed
 
-		UART_SetBaudRate(UART0, UART_HAL_DEFAULT_BAUDRATE);
+		UARTSetBaudRate(UART0, UART_HAL_DEFAULT_BAUDRATE);
 
 		//Configure UART0 TX and RX PINS
 
@@ -123,13 +123,13 @@ void UARTSetBaudRate (UART_Type *uart, uint32_t baudrate)
 
 void UARTPisr(void)
 {
-	if(sendFlag == TRUE){
+	if(sendFlag == true){
 		if(((UART0->S1)& UART_S1_TDRE_MASK) == 0)
 		{
 			UART0->D = message;
 			sendFlag = 0;
 		}
-	}else if(recieveFlag == TRUE)
+	}else if(recieveFlag == true)
 	{
 		if(((UART0->S1)& UART_S1_RDRF_MASK) == 0)
 		{
@@ -141,13 +141,13 @@ void UARTPisr(void)
 
 void UARTSendData(unsigned char tx_data)
 {
-	SendFlag = TRUE;
+	sendFlag = true;
 	message = tx_data;
 }
 
 unsigned char UARTRecieveData(void)
 {
-	ReciveFlag = TRUE;
+	recieveFlag = true;
 	return message;
 }
 

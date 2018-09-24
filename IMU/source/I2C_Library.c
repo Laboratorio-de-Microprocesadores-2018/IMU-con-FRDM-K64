@@ -1,5 +1,6 @@
 #include "MK64F12.h"
 #include "I2C_Library.h"
+#include <stdbool.h>
 
 #define I2C_CHECK_BUSY 			((I2C0->S & I2C_S_BUSY_MASK) != 0)		// 0 IF BUS IS IDLE
 #define I2C_CHECK_RX_ACK 		((I2C0->S & I2C_S_RXAK_MASK) == 0)		// 0 IF RECEIVED ACK
@@ -37,7 +38,7 @@ static I2C_CONTROL_T * i2cControl;
 void I2C_init()
 {
 	// Clock gating to the I2C0 module
-	SIM->SIM_SCGC4 |= SIM_SCGC4_I2C0(1);
+	SIM->SCGC4 |= SIM_SCGC4_I2C0(1);
 	// Clock frequency divider
 	uint8_t multiplier = 1; // multiplier = x2
 	uint8_t SCL_div = 0x2B;
@@ -71,7 +72,7 @@ static I2C_FAULT_T I2C_Write()
 {
 	I2C_FAULT_T retVal = I2C_NO_FAULT;
 	//Check if the bus is not busy
-	if(I2C_CHECK_BUSY())
+	if(I2C_CHECK_BUSY)
 		retVal = I2C_BUS_BUSY;
 	else
 	{
@@ -110,7 +111,7 @@ static I2C_FAULT_T I2C_Read()
 {
 	I2C_FAULT_T retVal = I2C_NO_FAULT;
 	//Check if the bus is not busy
-	if(I2C_CHECK_BUSY())
+	if(I2C_CHECK_BUSY)
 		retVal = I2C_BUS_BUSY;
 	else
 	{
@@ -163,10 +164,10 @@ I2C_FAULT_T I2C_Block_RnW(I2C_CONTROL_T * i2cInput, bool readNwrite)
 	{
 		while(i2cControl->flag == I2C_FLAG_TRANSMISSION_PROGRESS && i2cControl->fault == I2C_NO_FAULT)
 		{
-			while( !I2C_GET_IICIF);
+			while(I2C0->S & I2C_S_IICIF_MASK == 0);
 			I2C_isrCallback();
 		}
-		while(I2C_BUS_BUSY);		// wait until the bus is free again before exit
+		while(I2C_CHECK_BUSY);		// wait until the bus is free again before exit
 		retVal = i2cControl->fault;
 	}
 
@@ -254,7 +255,7 @@ void I2C_isrCallback()
 }
 
 
-__ISR__ I2C0_IRQHandler(void)
+void I2C0_IRQHandler(void)
 {
 	// Must clear NVIC flag??
 	I2C_isrCallback();

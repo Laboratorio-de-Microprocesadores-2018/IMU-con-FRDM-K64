@@ -29,6 +29,8 @@ void FxDisable(void);
 bool FXConfigure();//WARNING: while configuring the sensor is disabled and then enabled (only if it was when calling)
 bool GetData(sData *acc, sData *mag);
 
+bool LlegoAlgo();
+
 
 
 

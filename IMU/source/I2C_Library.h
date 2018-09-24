@@ -55,7 +55,7 @@ typedef struct
 	int8_t *	data;
 	uint8_t		dataSize;
 	uint8_t		dataIndex;
-	void * callback();
+	void (* callback)(void);
 }I2C_CONTROL_T;
 
 void I2C_init();
