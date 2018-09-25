@@ -43,7 +43,7 @@
 /** Función que se llama 1 vez, al comienzo del programa */
 void App_Init (void)
 {
-	UART_Init();
+
 	pinMode(PIN_LED_RED,OUTPUT);
 	digitalWrite(PIN_LED_RED,1);
 
@@ -53,14 +53,5 @@ void App_Init (void)
 /** Función que se llama constantemente en un ciclo infinito */
 void App_Run (void)
 {
-	static char c;
-	c = UART_Recieve_Data();
-		if( c == 'a')
-		{
-			digitalWrite(PIN_LED_RED,1);
-		}else if( c== 'p' )
-		{
-			digitalWrite(PIN_LED_RED,0);
-		}
 
 }
