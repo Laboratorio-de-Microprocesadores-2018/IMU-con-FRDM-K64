@@ -6,14 +6,15 @@
 #define I2C_CHECK_RX_ACK 		((I2C0->S & I2C_S_RXAK_MASK) == 0)		// 0 IF RECEIVED ACK
 #define I2C_DATA 				(I2C0->D)
 #define I2C_SET_TX_MODE			(I2C0->C1 |= 1<<I2C_C1_TX_SHIFT)
-#define I2C_SET_RX_MODE 		(I2C0->C1 &= 0<<I2C_C1_TX_SHIFT)
+#define I2C_SET_RX_MODE 		(I2C0->C1 &= ~(1<<I2C_C1_TX_SHIFT))
 #define I2C_NEXT_SEND_NACK		(I2C0->C1 |= 1<<I2C_C1_TXAK_SHIFT)
-#define I2C_NEXT_SEND_ACK		(I2C0->C1 &= 0<<I2C_C1_TXAK_SHIFT)
+#define I2C_NEXT_SEND_ACK		(I2C0->C1 &= ~(1<<I2C_C1_TXAK_SHIFT))
 #define I2C_SEND_START 			(I2C0->C1 |= 1<<I2C_C1_MST_SHIFT)
-#define I2C_SEND_STOP			(I2C0->C1 &= 0<<I2C_C1_MST_SHIFT)
+#define I2C_SEND_STOP			(I2C0->C1 &= ~(1<<I2C_C1_MST_SHIFT))
 #define I2C_SEND_RSTART			(I2C0->C1 |= 1<<I2C_C1_RSTA_SHIFT)
 #define I2C_CLEAR_IICIF			(I2C0->S |= 1<<I2C_S_IICIF_SHIFT)
-#define I2C_GET_IICIF			((I2C0->S & I2C_S_IICIF_MASK) != 0)
+#define I2C_GET_IICIF			((I2C0->S & I2C_S_IICIF_MASK)>>I2C_S_IICIF_SHIFT)
+#define I2C_SET_MASTER			(I2C0->C1 |= 1<<I2C_C1_MST_SHIFT)
 
 #define I2C_TIMEOUT_COUNT 100000				// Number of "while" cycles to wait if trying to send data and the bus is busy
 // I2C0_SCL_PIN	PE24
@@ -40,26 +41,32 @@ void I2C_init()
 	// Clock gating to the I2C0 module
 	SIM->SCGC4 |= SIM_SCGC4_I2C0(1);
 	// Clock frequency divider
-	uint8_t multiplier = 1; // multiplier = x2
-	uint8_t SCL_div = 0x2B;
-	I2C0->F = ((multiplier << 6) | SCL_div);
+	uint8_t multiplier = 2; // multiplier = x4
+	uint8_t SCL_div = 0x3B;
+	I2C0->F = ((multiplier << 6) | SCL_div);	// freq = 50MHz/(4x2048);
 
 	// Enable NVIC interrupts
 	__NVIC_EnableIRQ(I2C0_IRQn);
 	// Write I2C0 Control Register 1
 	I2C0->C1 = 0x00;
 	I2C0->C1 |= (	I2C_C1_IICEN_MASK |		// enable I2C
-						I2C_C1_IICIE_MASK );		// enable I2C interrupts
+					I2C_C1_IICIE_MASK );	// enable I2C interrupts
 
- 	I2C_NEXT_SEND_ACK;		// Hace falta?
+// 	I2C_NEXT_SEND_ACK;		// Hace falta?
+ 	PORTE->PCR[24] &= ~PORT_PCR_MUX_MASK;
+ 	PORTE->PCR[24] |= PORT_PCR_MUX(5);
+ 	PORTE->PCR[25] &= ~PORT_PCR_MUX_MASK;
+ 	PORTE->PCR[25] |= PORT_PCR_MUX(5);
  	PORTE->PCR[24] |= (1<<PORT_PCR_ODE_SHIFT);
  	PORTE->PCR[25] |= (1<<PORT_PCR_ODE_SHIFT);
+ 	I2C_SET_TX_MODE;
+// 	I2C_SET_MASTER;
 }
 
 void I2C_SetDefaultConfig(I2C_CONTROL_T * i2cInput, uint8_t address, void (* userCallback) () )
 {
-	i2cInput->address_w = (address<<1) | 1;
-	i2cInput->address_r = (address<<1) & 0;
+	i2cInput->address_r = (address<<1) | 0x01;
+	i2cInput->address_w = (address<<1) & 0xFE;
 	i2cInput->state = I2C_STATE_NONE;
 	i2cInput->flag = I2C_FLAG_NONE;
 	i2cInput->mode = I2C_MODE_READ;
@@ -79,7 +86,7 @@ static I2C_FAULT_T I2C_Write()
 		i2cControl->mode = I2C_MODE_WRITE;	// Set write mode in control structure
 		i2cControl->dataIndex = 0;
 		i2cControl->flag = I2C_FLAG_TRANSMISSION_PROGRESS;	// Set transmission in progress flag
-		i2cControl->state = I2C_STATE_WRITE_DATA;	// Set the next state
+		i2cControl->state = I2C_STATE_WRITE_REG_ADDRESS;	// Set the next state
 		i2cControl->fault = I2C_NO_FAULT;
 		I2C_SET_TX_MODE;		// Set peripheral mode to master
 		I2C_SEND_START;		// Write start signal on the data bus. From now on assume im the master.
@@ -164,7 +171,7 @@ I2C_FAULT_T I2C_Block_RnW(I2C_CONTROL_T * i2cInput, bool readNwrite)
 	{
 		while(i2cControl->flag == I2C_FLAG_TRANSMISSION_PROGRESS && i2cControl->fault == I2C_NO_FAULT)
 		{
-			while(I2C0->S & I2C_S_IICIF_MASK == 0);
+			while(I2C_GET_IICIF==0);
 			I2C_isrCallback();
 		}
 		while(I2C_CHECK_BUSY);		// wait until the bus is free again before exit
@@ -181,26 +188,50 @@ void I2C_isrCallback()
 	{
 		case I2C_MODE_WRITE:
 		{
-			if(i2cControl->dataIndex == i2cControl->dataSize)	// if this is ack after last byte transmitted
+			switch(i2cControl->state)
 			{
-				I2C_SEND_STOP;
-				i2cControl->state = I2C_STATE_NONE;
-				i2cControl->flag = I2C_FLAG_NONE;
-				i2cControl->callback();
-			}
-			else
-			{
-				if(I2C_CHECK_RX_ACK)	// Received an ACK
+				case I2C_STATE_WRITE_REG_ADDRESS:
 				{
-					I2C_DATA = i2cControl->data[i2cControl->dataIndex++];	// write next byte
+					if(I2C_CHECK_RX_ACK)	// Received an ACK
+					{
+						I2C_DATA = i2cControl->address_reg;	// write register address
+						i2cControl->state = I2C_STATE_WRITE_DATA;
+					}
+					else	// Slave did not respond (NACK)
+					{
+						I2C_SEND_STOP;
+						i2cControl->state = I2C_STATE_NONE;
+						i2cControl->flag = I2C_FLAG_NONE;
+						i2cControl->fault = I2C_SLAVE_NACK;
+						i2cControl->callback();
+					}
+					break;
 				}
-				else	// Slave did not respond (NACK)
+				case I2C_STATE_WRITE_DATA:
 				{
-					I2C_SEND_STOP;
-					i2cControl->state = I2C_STATE_NONE;
-					i2cControl->flag = I2C_FLAG_NONE;
-					i2cControl->fault = I2C_SLAVE_NACK;
-					i2cControl->callback();
+					if(i2cControl->dataIndex == i2cControl->dataSize)	// if this is ack after last byte transmitted
+					{
+						I2C_SEND_STOP;
+						i2cControl->state = I2C_STATE_NONE;
+						i2cControl->flag = I2C_FLAG_NONE;
+						i2cControl->callback();
+					}
+					else
+					{
+						if(I2C_CHECK_RX_ACK)	// Received an ACK
+						{
+							I2C_DATA = i2cControl->data[i2cControl->dataIndex++];	// write next byte
+						}
+						else	// Slave did not respond (NACK)
+						{
+							I2C_SEND_STOP;
+							i2cControl->state = I2C_STATE_NONE;
+							i2cControl->flag = I2C_FLAG_NONE;
+							i2cControl->fault = I2C_SLAVE_NACK;
+							i2cControl->callback();
+						}
+					}
+					break;
 				}
 			}
 			break;
@@ -227,7 +258,11 @@ void I2C_isrCallback()
 				{
 					// read dummy data and prepare for incoming data
 					I2C_SET_RX_MODE;
-					I2C_NEXT_SEND_ACK;
+					if(i2cControl->dataIndex == i2cControl->dataSize-1)	// if its last byte to be read
+						I2C_NEXT_SEND_NACK;
+					else
+						I2C_NEXT_SEND_ACK;
+
 					uint8_t dummy = I2C_DATA;
 					i2cControl->state = I2C_STATE_READ_DATA;
 					break;
@@ -248,6 +283,8 @@ void I2C_isrCallback()
 
 					break;
 				}
+				case I2C_STATE_NONE: case I2C_STATE_WRITE_DATA: default:
+				break;
 			}
 			break;
 		}

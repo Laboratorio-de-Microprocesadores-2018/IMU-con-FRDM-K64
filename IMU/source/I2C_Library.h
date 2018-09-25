@@ -18,8 +18,7 @@ typedef enum
 	I2C_STATE_WRITE_REG_ADDRESS,
 	I2C_STATE_RSTART,
 	I2C_STATE_READ_DUMMY,
-	I2C_STATE_READ_DATA,
-	I2C_STATE_NACK
+	I2C_STATE_READ_DATA
 } I2C_STATE_T;
 
 typedef enum
@@ -52,7 +51,7 @@ typedef struct
 	uint8_t		address_w;
 	uint8_t		address_r;
 	uint8_t 	address_reg;
-	int8_t *	data;
+	uint8_t *	data;
 	uint8_t		dataSize;
 	uint8_t		dataIndex;
 	void (* callback)(void);

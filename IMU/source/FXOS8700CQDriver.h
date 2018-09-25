@@ -4,6 +4,7 @@
 #include<stdint.h>
 #include<stdbool.h>
 
+#define UINT14_MAX 16383
 
 typedef struct {
 	int16_t x;
