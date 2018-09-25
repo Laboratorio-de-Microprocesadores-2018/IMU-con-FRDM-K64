@@ -48,16 +48,23 @@ void App_Init (void)
 	FXInit();
 	*/
 
+
+	pinMode(PIN_LED_RED,OUTPUT);
+	digitalWrite(PIN_LED_RED,1);
+
+
 }
 
 /** Función que se llama constantemente en un ciclo infinito */
 void App_Run (void)
 {
 
+
 	/*
 	sData acc,mag;
 	if(LlegoAlgo())
 		GetData(&acc,&mag);
 	*/
+
 
 }
