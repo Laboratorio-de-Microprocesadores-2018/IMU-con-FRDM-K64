@@ -6,7 +6,7 @@
  */
 
 #include <stdint.h>
-//#include "hardware.h"
+#include "hardware.h"
 #include "UART.h"
 //#include "SysTick.h"
 #include "CircularBuffer.h"
@@ -50,13 +50,10 @@ typedef enum
 static bool errFlag;
 static uint8_t transferWord;
 
-static int sendFlag;
-static int recieveFlag;
-
 NEW_CIRCULAR_BUFFER(transmitBuffer,BUFFER_SIZE,sizeof(transferWord));
 NEW_CIRCULAR_BUFFER(recieveBuffer,BUFFER_SIZE,sizeof(transferWord));
 
-static void UARTPisr(void);
+//static void UARTPisr(void);
 static void transmitData(void);
 static void recieveData(void);
 static void loadBuffer2Register(void);
@@ -88,7 +85,7 @@ void UARTInit (void)
 
 	//UART0 Set UART Speed
 
-	UART_SetBaudRate(UART0, UART_HAL_DEFAULT_BAUDRATE);
+	UARTSetBaudRate(UART0, UART_HAL_DEFAULT_BAUDRATE);
 
 	//Configure UART0 TX and RX PINS
 
@@ -152,20 +149,22 @@ void UARTPisr(void)
 
 uint8_t UARTSendData( uint8_t * tx_data, uint8_t len)
 {
-	for(int i = 0; (i < len) && (~errFlag); i++)
+	for(int i = 0; (i < len) && (!errFlag); i++)
 	{
-		if(~push(&transmitBuffer, tx_data[i]))
+		if((push(&transmitBuffer, (uint8_t *)tx_data[i])))
 		{
 			errFlag = true;
 			return false;
 		}
 	}
+
+	return true;
 }
 
-unint8_t UARTRecieveData( uint8_t * rx_data, uint8_t len)
+uint8_t UARTRecieveData( uint8_t * rx_data, uint8_t len)
 {
 	uint8_t lenRet = 0 ;
-	while( (i < len) && pop(&recievetBuffer, &rx_data[lenRet]))
+	while( (lenRet < len) && pop(&recieveBuffer, &rx_data[lenRet]))
 		lenRet ++;
 	return lenRet;
 }
@@ -188,11 +187,11 @@ void transmitData(void)
 	if(isEmpty(&transmitBuffer) == false)
 	{
 		int k = numel(&transmitBuffer);
-		for(int i = 0; (i < k) && (~errFlag); i++)
+		for(int i = 0; (i < k) && (!errFlag); i++)
 		{
 			loadBuffer2Register();
 		}
-		if(((((UART0->S1) & UART_S1_TDRE_MASK) == true)) && (~errFlag))
+		if(((((UART0->S1) & UART_S1_TDRE_MASK) == true)) && (!errFlag))
 		{
 			loadBuffer2Register();
 		}else
@@ -207,13 +206,13 @@ void recieveData(void)
 	if(isFull(&recieveBuffer) == false)
 	{
 		int k = UART0->TCFIFO;
-		for(int i = 0; (i < K) && (~errFlag); i++)
+		for(int i = 0; (i < k) && (!errFlag); i++)
 		{
 			loadRegister2Buffer();
 		}
-		if((((UART0->S1) & UART_S1_RDRF_MASK) == true) && (~errFlag))
+		if((((UART0->S1) & UART_S1_RDRF_MASK) == true) && (!errFlag))
 		{
-			transferLastWord();
+			loadRegister2Buffer();
 		}else
 		{
 			errFlag = true;
@@ -235,8 +234,8 @@ void loadBuffer2Register(void)
 
 void loadRegister2Buffer(void)
 {
-	trasnferWord = UART0->D;
-	if(~push(&recievetBuffer, &transferWord))
+	transferWord = UART0->D;
+	if(!push(&recieveBuffer, &transferWord))
 	{
 		errFlag = true;
 		return;

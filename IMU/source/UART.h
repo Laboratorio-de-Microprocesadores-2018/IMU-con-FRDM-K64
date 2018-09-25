@@ -9,8 +9,8 @@
 void UARTInit (void);
 void UARTSetBaudRate (UART_Type *uart, uint32_t baudrate);
 
-void UARTSendData(unsigned char txdata);
-unsigned char UARTRecieveData(void);
+uint8_t UARTSendData( uint8_t * tx_data, uint8_t len);
+uint8_t UARTRecieveData( uint8_t * rx_data, uint8_t len);
 
 
 #endif /* UART_H_ */
