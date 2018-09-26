@@ -19,8 +19,16 @@
 #define MASK_ID 0b11111110000
 #define MY_BOARD_ID 0x109
 
-#include "MeasurementProtocol.h"
+
 #include "stdbool.h"
+#include "stdint.h"
+
+typedef struct
+{
+	uint16_t boardID;
+	uint8_t angleID; 	///	ID representing roll (rolido 'R') o pitch (cabeceo 'C')
+	int16_t angleVal;
+}Measurement;
 
 
 /**

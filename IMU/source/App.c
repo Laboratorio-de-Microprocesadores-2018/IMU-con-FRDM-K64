@@ -14,7 +14,7 @@
 /////////////////////////////////////////////////////////////////////////////////
 #include "FXOS8700CQDriver.h"
 #include "CANCommunications.h"
-#include "UART.h" // REEMPLAZAR POR LA CAPA DE ARRIBA
+#include "DesktopCommunications.h"
 #include "SysTick.h"
 #include "math.h"
 
@@ -62,12 +62,15 @@ static Orientation computePosition(sData accelerometer,sData magnetometer);
 
 void App_Init (void)
 {
-	otherBoardCommunicationsInit();
-	//desktopCommunicationsInit();
+	// Init accelerometer
 	FX_config accelConfig = FX_GetDefaultConfig();
 	FX_Init(accelConfig);
 
+	// Init communications with other boards throug CAN bus
+	otherBoardCommunicationsInit();
 
+	// Init communication with desktop PC through UART
+	desktopCommunicationsInit();
 }
 
 
@@ -103,7 +106,7 @@ void App_Run (void)
 	}
 
 	if(receiveOtherBoardsMeasurement(&m) == true);
-		//sendMeasurement2Desktop(m.boardID,m.angleID,m.angleVal);
+		sendMeasurement2Desktop(m.boardID,m.angleID,m.angleVal);
 
 
 }

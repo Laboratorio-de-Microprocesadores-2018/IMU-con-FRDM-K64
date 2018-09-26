@@ -46,6 +46,7 @@
  *
  */
 
+#define PACKET_SIZE (3)
 
 #define BOARD_ID_B0_MASK (0b0000011111111000)
 #define BOARD_ID_B0_SHIFT (0x3)
@@ -72,14 +73,5 @@
 // The last macro first shifts 5, then casts to int16_t, and then shifts2.
 // This in order to extend the sign of the number!!!
 
-// La joda es que estas macros la use la funcion que manda por UART a la PC
-// sendMeasurement2Desktop(uint16_t ID, uint8_t angleID, int16_t angleVal);
-
-typedef struct
-{
-	uint16_t boardID;
-	uint8_t angleID; 	///	ID representing roll (rolido 'R') o pitch (cabeceo 'C')
-	int16_t angleVal;
-}Measurement;
 
 #endif /* MEASUREMENTPROTOCOL_H_ */
