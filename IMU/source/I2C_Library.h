@@ -1,14 +1,20 @@
 /**
  * @file I2C.h
  * @date 14 Sep 2018
- * @brief File containing example of doxygen usage for quick reference.
+ * @brief .
  *
- * Here typically goes a more extensive explanation of what the header
- * defines. Doxygens tags are words preceeded by either a backslash @\
- * or by an at symbol @@.
- * @see http://www.stack.nl/~dimitri/doxygen/docblocks.html
- * @see http://www.stack.nl/~dimitri/doxygen/commands.html
  */
+
+// Uncomment this define to raise a pin when in a I2C function
+//#define MEASURE_I2C
+
+#ifdef MEASURE_I2C
+	#define MEASURE_I2C_PORT PORTC
+	#define MEASURE_I2C_GPIO GPIOC
+	#define MEASURE_I2C_PIN	0
+#endif
+
+
 
 typedef enum { I2C_FREQ_13K, I2C_FREQ_39K, I2C_FREQ_48K8, I2C_FREQ_97K6 , I2C_FREQ_195K3 , 
 				I2C_FREQ_312K5 , I2C_FREQ_625K , I2C_FREQ_892K , I2C_FREQ_2M5 } I2C_FREQUENCY_T;

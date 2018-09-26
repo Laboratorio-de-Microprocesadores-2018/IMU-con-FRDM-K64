@@ -82,6 +82,12 @@ void CAN_GetDefaultConfig(CAN_Config * config)
 
 CAN_Status CAN_Init(CAN_Type * base, CAN_Config * config, uint32_t sourceClockHz )
 {
+#ifdef MEASURE_CAN
+	MEASURE_CAN_PORT->PCR[MEASURE_CAN_PIN] = PORT_PCR_MUX(1);
+	MEASURE_CAN_GPIO->PDDR |= (1<<MEASURE_CAN_PIN);
+	MEASURE_CAN_GPIO->PDOR &= ~(1<<MEASURE_CAN_PIN);
+#endif
+
 	/// Enable clock for CAN module
 	SIM->SCGC6 |= SIM_SCGC6_FLEXCAN0_MASK;
 
@@ -97,11 +103,7 @@ CAN_Status CAN_Init(CAN_Type * base, CAN_Config * config, uint32_t sourceClockHz
 	uint32_t PCR = PORT_PCR_MUX(2) | PORT_PCR_PE_MASK | PORT_PCR_PS_MASK; // REVISAR COMO CONFIGURAR BIEN EL PCR
 	ports[PIN_CAN0_TX/32]->PCR[PIN_CAN0_TX%32] = PCR;
 	ports[PIN_CAN0_RX/32]->PCR[PIN_CAN0_RX%32] = PCR;
-#ifdef MEASURE_CAN
-	MEASURE_CAN_PORT->PCR[MEASURE_CAN_PIN] = PORT_PCR_MUX(1);
-	MEASURE_CAN_GPIO->PDDR |= (1<<MEASURE_CAN_PIN);
-	MEASURE_CAN_GPIO->PDOR &= ~(1<<MEASURE_CAN_PIN);
-#endif
+
 
 	/// Disable CAN module in order to modify registers
 	CAN_Disable(base);

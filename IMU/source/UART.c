@@ -63,6 +63,12 @@ static void loadRegister2Buffer(void);
 void UARTInit (void)
 {
 
+#ifdef MEASURE_UART
+	MEASURE_UART_PORT->PCR[MEASURE_UART_PIN] = PORT_PCR_MUX(1);
+	MEASURE_UART_GPIO->PDDR |= (1<<MEASURE_UART_PIN);
+	MEASURE_UART_GPIO->PDOR &= ~(1<<MEASURE_UART_PIN);
+#endif
+
 // Note: 5.6 Clock Gating page 192
 // Any bus access to a peripheral that has its clock disabled generates an error termination.
 	SIM->SCGC5 |= SIM_SCGC5_PORTB_MASK;
@@ -139,6 +145,7 @@ void UARTPisr(void)
 		}
 	}else if(recieveFlag == true)
 	{
+
 		if(((UART0->S1)& UART_S1_RDRF_MASK) == 0)
 		{
 			message = UART0->D;
@@ -149,29 +156,48 @@ void UARTPisr(void)
 
 uint8_t UARTSendData( uint8_t * tx_data, uint8_t len)
 {
+#ifdef MEASURE_UART
+	BITBAND_REG(MEASURE_UART_GPIO->PDOR, MEASURE_UART_PIN) = 1;
+#endif
+
 	for(int i = 0; (i < len) && (!errFlag); i++)
 	{
-		if((push(&transmitBuffer, (uint8_t *)tx_data[i])))
-		{
+		if((push(&transmitBuffer, (uint8_t *)tx_data[i]))) // SEBA: ACA NO SEBERIA SER  tx_data+i
+		{													// lo que le pasas a push?? Tobi.
 			errFlag = true;
 			return false;
 		}
 	}
 
+#ifdef MEASURE_UART
+	BITBAND_REG(MEASURE_UART_GPIO->PDOR, MEASURE_UART_PIN) = 0;
+#endif
 	return true;
 }
 
 uint8_t UARTRecieveData( uint8_t * rx_data, uint8_t len)
 {
+#ifdef MEASURE_UART
+	BITBAND_REG(MEASURE_UART_GPIO->PDOR, MEASURE_UART_PIN) = 1;
+#endif
+
 	uint8_t lenRet = 0 ;
 	while( (lenRet < len) && pop(&recieveBuffer, &rx_data[lenRet]))
 		lenRet ++;
+
+#ifdef MEASURE_UART
+	BITBAND_REG(MEASURE_UART_GPIO->PDOR, MEASURE_UART_PIN) = 0;
+#endif
+
 	return lenRet;
 }
 
 
 __ISR__ UART0_RX_TX_IRQHandler(void)
 {
+#ifdef MEASURE_UART
+	BITBAND_REG(MEASURE_UART_GPIO->PDOR, MEASURE_UART_PIN) = 1;
+#endif
 	if(((UART0->S1) & UART_S1_TDRE_MASK) == true)
 		transmitData();
 	else if(((UART0->S1)& UART_S1_RDRF_MASK) == true)
@@ -180,10 +206,18 @@ __ISR__ UART0_RX_TX_IRQHandler(void)
 	}else
 		errFlag = true;
 
+#ifdef MEASURE_UART
+	BITBAND_REG(MEASURE_UART_GPIO->PDOR, MEASURE_UART_PIN) = 0;
+#endif
+
 }
 
 void transmitData(void)
 {
+#ifdef MEASURE_UART
+	BITBAND_REG(MEASURE_UART_GPIO->PDOR, MEASURE_UART_PIN) = 1;
+#endif
+
 	if(isEmpty(&transmitBuffer) == false)
 	{
 		int k = numel(&transmitBuffer);
@@ -194,15 +228,21 @@ void transmitData(void)
 		if(((((UART0->S1) & UART_S1_TDRE_MASK) == true)) && (!errFlag))
 		{
 			loadBuffer2Register();
-		}else
+		}
+		else
 		{
 			errFlag = true;
-			return;
 		}
 	}
+#ifdef MEASURE_UART
+	BITBAND_REG(MEASURE_UART_GPIO->PDOR, MEASURE_UART_PIN) = 0;
+#endif
 }
 void recieveData(void)
 {
+#ifdef MEASURE_UART
+	BITBAND_REG(MEASURE_UART_GPIO->PDOR, MEASURE_UART_PIN) = 1;
+#endif
 	if(isFull(&recieveBuffer) == false)
 	{
 		int k = UART0->TCFIFO;
@@ -213,16 +253,24 @@ void recieveData(void)
 		if((((UART0->S1) & UART_S1_RDRF_MASK) == true) && (!errFlag))
 		{
 			loadRegister2Buffer();
-		}else
+		}
+		else
 		{
 			errFlag = true;
-			return;
 		}
 	}
+
+#ifdef MEASURE_UART
+	BITBAND_REG(MEASURE_UART_GPIO->PDOR, MEASURE_UART_PIN) = 0;
+#endif
 }
 
 void loadBuffer2Register(void)
 {
+#ifdef MEASURE_UART
+	BITBAND_REG(MEASURE_UART_GPIO->PDOR, MEASURE_UART_PIN) = 1;
+#endif
+
 	if(pop(&transmitBuffer, &transferWord))
 		UART0->D = transferWord;
 	else
@@ -230,14 +278,26 @@ void loadBuffer2Register(void)
 		errFlag = true;
 		return;
 	}
+
+#ifdef MEASURE_UART
+	BITBAND_REG(MEASURE_UART_GPIO->PDOR, MEASURE_UART_PIN) = 0;
+#endif
 }
 
 void loadRegister2Buffer(void)
 {
+#ifdef MEASURE_UART
+	BITBAND_REG(MEASURE_UART_GPIO->PDOR, MEASURE_UART_PIN) = 1;
+#endif
+
 	transferWord = UART0->D;
 	if(!push(&recieveBuffer, &transferWord))
 	{
 		errFlag = true;
 		return;
 	}
+
+#ifdef MEASURE_UART
+	BITBAND_REG(MEASURE_UART_GPIO->PDOR, MEASURE_UART_PIN) = 0;
+#endif
 }

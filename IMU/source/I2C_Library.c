@@ -43,6 +43,12 @@ static I2C_CONTROL_T * i2cControl;
 
 void I2C_init(I2C_CONTROL_T * i2cInput)
 {
+#ifdef MEASURE_I2C
+	MEASURE_I2C_PORT->PCR[MEASURE_I2C_PIN] = PORT_PCR_MUX(1);
+	MEASURE_I2C_GPIO->PDDR |= (1<<MEASURE_I2C_PIN);
+	MEASURE_I2C_GPIO->PDOR &= ~(1<<MEASURE_I2C_PIN);
+#endif
+
 	// Clock gating to the I2C0 module
 	SIM->SCGC4 |= SIM_SCGC4_I2C0(1);
 	// Clock frequency divider
@@ -108,6 +114,9 @@ void I2C_SetDefaultConfig(I2C_CONTROL_T * i2cInput, uint8_t address, I2C_FREQUEN
 
 I2C_FAULT_T I2C_WriteData(I2C_CONTROL_T * i2cInput)
 {
+#ifdef MEASURE_I2C
+	BITBAND_REG(MEASURE_I2C_GPIO->PDOR, MEASURE_I2C_PIN) = 1;
+#endif
 	i2cControl = i2cInput;
 
 	I2C_FAULT_T retVal = I2C_NO_FAULT;
@@ -116,18 +125,34 @@ I2C_FAULT_T I2C_WriteData(I2C_CONTROL_T * i2cInput)
 	if(busTimeoutCount == 0)
 		retVal = I2C_BUS_FAULT;
 
+#ifdef MEASURE_I2C
+	BITBAND_REG(MEASURE_I2C_GPIO->PDOR, MEASURE_I2C_PIN) = 0;
+#endif
+
 	return retVal;
 }
 
 I2C_FAULT_T I2C_Blocking_WriteData(I2C_CONTROL_T * i2cInput)
 {
+#ifdef MEASURE_I2C
+	BITBAND_REG(MEASURE_I2C_GPIO->PDOR, MEASURE_I2C_PIN) = 1;
+#endif
+
 	i2cControl = i2cInput;
 	I2C_FAULT_T retVal = I2C_Block_RnW(i2cInput, WRITE_BLOCKING);
+
+#ifdef MEASURE_I2C
+	BITBAND_REG(MEASURE_I2C_GPIO->PDOR, MEASURE_I2C_PIN) = 0;
+#endif
 	return retVal;
 }
 
 I2C_FAULT_T I2C_ReadData(I2C_CONTROL_T * i2cInput)
 {
+#ifdef MEASURE_I2C
+	BITBAND_REG(MEASURE_I2C_GPIO->PDOR, MEASURE_I2C_PIN) = 1;
+#endif
+
 	i2cControl = i2cInput;
 
 	I2C_FAULT_T retVal = I2C_NO_FAULT;
@@ -136,18 +161,35 @@ I2C_FAULT_T I2C_ReadData(I2C_CONTROL_T * i2cInput)
 	if(busTimeoutCount == 0)
 		retVal = I2C_BUS_FAULT;
 
+#ifdef MEASURE_I2C
+	BITBAND_REG(MEASURE_I2C_GPIO->PDOR, MEASURE_I2C_PIN) = 0;
+#endif
+
 	return retVal;
 }
 
 I2C_FAULT_T I2C_Blocking_ReadData(I2C_CONTROL_T * i2cInput)
 {
+#ifdef MEASURE_I2C
+	BITBAND_REG(MEASURE_I2C_GPIO->PDOR, MEASURE_I2C_PIN) = 1;
+#endif
+
 	i2cControl = i2cInput;
 	I2C_FAULT_T retVal = I2C_Block_RnW(i2cInput, READ_BLOCKING);
+
+#ifdef MEASURE_I2C
+	BITBAND_REG(MEASURE_I2C_GPIO->PDOR, MEASURE_I2C_PIN) = 0;
+#endif
+
 	return retVal;
 }
 
 static bool I2C_Write()
 {
+#ifdef MEASURE_I2C
+	BITBAND_REG(MEASURE_I2C_GPIO->PDOR, MEASURE_I2C_PIN) = 1;
+#endif
+
 	bool retVal = true;
 	//Check if the bus is not busy
 	if(I2C_CHECK_BUSY)
@@ -163,11 +205,20 @@ static bool I2C_Write()
 		I2C_SEND_START;		// Write start signal on the data bus. From now on assume im the master.
 		I2C_DATA = i2cControl->address_w;		// Send the desired address to the bus + write bit
 	}
+
+#ifdef MEASURE_I2C
+	BITBAND_REG(MEASURE_I2C_GPIO->PDOR, MEASURE_I2C_PIN) = 0;
+#endif
+
 	return retVal;
 }
 
 static bool I2C_Read()
 {
+#ifdef MEASURE_I2C
+	BITBAND_REG(MEASURE_I2C_GPIO->PDOR, MEASURE_I2C_PIN) = 1;
+#endif
+
 	I2C_FAULT_T retVal = true;
 	//Check if the bus is not busy
 	if(I2C_CHECK_BUSY)
@@ -183,11 +234,19 @@ static bool I2C_Read()
 		I2C_SEND_START;		// Write start signal on the data bus
 		I2C_DATA = i2cControl->address_w;		// Send the desired address to the bus + write bit
 	}
+
+#ifdef MEASURE_I2C
+	BITBAND_REG(MEASURE_I2C_GPIO->PDOR, MEASURE_I2C_PIN) = 0;
+#endif
 	return retVal;
 }
 
 I2C_FAULT_T I2C_Block_RnW(I2C_CONTROL_T * i2cInput, bool readNwrite)
 {
+#ifdef MEASURE_I2C
+	BITBAND_REG(MEASURE_I2C_GPIO->PDOR, MEASURE_I2C_PIN) = 1;
+#endif
+
 	I2C_FAULT_T retVal = I2C_NO_FAULT;
 	unsigned busTimeoutCount = I2C_TIMEOUT_COUNT;
 
@@ -209,11 +268,20 @@ I2C_FAULT_T I2C_Block_RnW(I2C_CONTROL_T * i2cInput, bool readNwrite)
 		retVal = i2cControl->fault;
 	}
 
+#ifdef MEASURE_I2C
+	BITBAND_REG(MEASURE_I2C_GPIO->PDOR, MEASURE_I2C_PIN) = 0;
+#endif
+
 	return retVal;
 }
 
 void I2C_isrCallback()
 {
+
+#ifdef MEASURE_I2C
+	BITBAND_REG(MEASURE_I2C_GPIO->PDOR, MEASURE_I2C_PIN) = 0;
+#endif
+
 	I2C_CLEAR_IICIF;
 	switch(i2cControl->mode)
 	{
@@ -301,19 +369,37 @@ void I2C_isrCallback()
 			break;
 		}
 	}
+#ifdef MEASURE_I2C
+	BITBAND_REG(MEASURE_I2C_GPIO->PDOR, MEASURE_I2C_PIN) = 0;
+#endif
 }
 
 static void terminateTransaction(I2C_FAULT_T error)
 {
+#ifdef MEASURE_I2C
+	BITBAND_REG(MEASURE_I2C_GPIO->PDOR, MEASURE_I2C_PIN) = 1;
+#endif
+
 	I2C_SEND_STOP;
 	i2cControl->state = I2C_STATE_NONE;
 	i2cControl->flag = I2C_FLAG_NONE;
 	i2cControl->fault = error;
 	i2cControl->callback();
+
+#ifdef MEASURE_I2C
+	BITBAND_REG(MEASURE_I2C_GPIO->PDOR, MEASURE_I2C_PIN) = 0;
+#endif
 }
 
 void I2C0_IRQHandler(void)
 {
+#ifdef MEASURE_I2C
+	BITBAND_REG(MEASURE_I2C_GPIO->PDOR, MEASURE_I2C_PIN) = 1;
+#endif
 	// Must clear NVIC flag??
 	I2C_isrCallback();
+
+#ifdef MEASURE_I2C
+	BITBAND_REG(MEASURE_I2C_GPIO->PDOR, MEASURE_I2C_PIN) = 0;
+#endif
 }
