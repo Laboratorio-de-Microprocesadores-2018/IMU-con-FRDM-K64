@@ -1,15 +1,23 @@
 /**
  * @file I2C.h
  * @date 14 Sep 2018
- * @brief File containing example of doxygen usage for quick reference.
+ * @brief .
  *
- * Here typically goes a more extensive explanation of what the header
- * defines. Doxygens tags are words preceeded by either a backslash @\
- * or by an at symbol @@.
- * @see http://www.stack.nl/~dimitri/doxygen/docblocks.html
- * @see http://www.stack.nl/~dimitri/doxygen/commands.html
  */
 
+// Uncomment this define to raise a pin when in a I2C function
+//#define MEASURE_I2C
+
+#ifdef MEASURE_I2C
+	#define MEASURE_I2C_PORT PORTC
+	#define MEASURE_I2C_GPIO GPIOC
+	#define MEASURE_I2C_PIN	0
+#endif
+
+
+
+typedef enum { I2C_FREQ_13K, I2C_FREQ_39K, I2C_FREQ_48K8, I2C_FREQ_97K6 , I2C_FREQ_195K3 , 
+				I2C_FREQ_312K5 , I2C_FREQ_625K , I2C_FREQ_892K , I2C_FREQ_2M5 } I2C_FREQUENCY_T;
 
 typedef enum
 {
@@ -36,10 +44,8 @@ typedef enum
 typedef enum
 {
 	I2C_NO_FAULT = 0,
-	I2C_BUS_BUSY,
-	I2C_TIMEOUT,
-	I2C_BUS_FAULT,
-	I2C_SLAVE_NACK	// the slave did NACK befor transmission was completed
+	I2C_BUS_FAULT,		// Permanent bus fault, to be checked at start of transmission
+	I2C_SLAVE_NACK		// Received NACK from slave before transmission was completed, to be checked in callback
 } I2C_FAULT_T;
 
 typedef struct
@@ -48,6 +54,7 @@ typedef struct
 	I2C_FLAG_T 	flag;
 	I2C_MODE_T 	mode;
 	I2C_FAULT_T fault;
+	I2C_FREQUENCY_T freq;
 	uint8_t		address_w;
 	uint8_t		address_r;
 	uint8_t 	address_reg;
@@ -57,8 +64,8 @@ typedef struct
 	void (* callback)(void);
 }I2C_CONTROL_T;
 
-void I2C_init();
-void I2C_SetDefaultConfig(I2C_CONTROL_T * i2cInput, uint8_t address, void (* userCallback) () );
+void I2C_init(I2C_CONTROL_T * i2cInput);
+void I2C_SetDefaultConfig(I2C_CONTROL_T * i2cInput, uint8_t address, I2C_FREQUENCY_T frequency, void (* userCallback) () );
 I2C_FAULT_T I2C_WriteData(I2C_CONTROL_T * i2cInput);
 I2C_FAULT_T I2C_ReadData(I2C_CONTROL_T * i2cInput);
 I2C_FAULT_T I2C_Blocking_WriteData(I2C_CONTROL_T * i2cInput);

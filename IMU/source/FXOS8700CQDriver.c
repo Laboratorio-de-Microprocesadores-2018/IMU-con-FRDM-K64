@@ -51,7 +51,7 @@ static FX_config currentConf;
 
 
 static uint8_t dataBuff[12];
-static I2C_CONTROL_T i2cConfig={0,0,0,0,0,0,0,dataBuff,0,0,NULL};
+static I2C_CONTROL_T i2cConfig;
 static bool dataFlag;
 
 /////////////////////////////////////////////////////////////////////////////////
@@ -64,7 +64,8 @@ static void sDataReady(void);
 
 static void sDataReady(void)
 {
-	I2C_SetDefaultConfig(&i2cConfig, DEF_SLAVE_ADDR,readData);
+
+	//I2C_SetDefaultConfig(&i2cConfig, DEF_SLAVE_ADDR,I2C_FREQ_48K8,readData);
 
 	switch(currentConf.mode)
 	{
@@ -153,9 +154,13 @@ FX_config FX_GetDefaultConfig(void)
 
 bool FX_Init(FX_config conf)
 {
+	I2C_SetDefaultConfig(&i2cConfig, DEF_SLAVE_ADDR,I2C_FREQ_48K8,readData);
 
-	I2C_init();
-	I2C_SetDefaultConfig(&i2cConfig, DEF_SLAVE_ADDR,readData);
+	i2cConfig.data = dataBuff;
+
+
+	I2C_init(&i2cConfig);
+
 
 	/**/
 	i2cConfig.address_reg=WHO_AM_I;
@@ -167,6 +172,7 @@ bool FX_Init(FX_config conf)
 	/**/
 	i2cConfig.address_reg=CTRL_REG1;
 	i2cConfig.data[0]=0;
+
 	if(I2C_Blocking_WriteData(&i2cConfig) != I2C_NO_FAULT)
 		digitalWrite(PIN_LED_RED,0);
 
@@ -218,7 +224,7 @@ bool FX_Init(FX_config conf)
 
 	/*IRQ pin configuration for data ready interrupt*/
 	pinMode(PORTNUM2PIN(PC,13),INPUT);
-	pinConfigureIRQ(PORTNUM2PIN(PC,13),IRQC_INTERRUPT_FALLING, sDataReady);
+	pinConfigureIRQ(PORTNUM2PIN(PC,13),IRQC_INTERRUPT_FALLING,sDataReady);
 
 
 	//por ahora lo dejo al final cosa de que el driver hace enable en init
@@ -228,12 +234,9 @@ bool FX_Init(FX_config conf)
 	if(I2C_Blocking_WriteData(&i2cConfig) != I2C_NO_FAULT)
 		digitalWrite(PIN_LED_RED,0);
 
-
-
 	currentConf=conf;
 
-	return 0;//VER DESPUES SI SE PONE ALGO
-
+	return true;//VER DESPUES SI SE PONE ALGO
 }
 
 
@@ -243,7 +246,7 @@ bool FX_GetData(sData *acc, sData *mag)
 	*acc=accData;
 	*mag=magData;
 	dataFlag=false;
-	return 0;//ver si se usa el bool para manejo de errores
+	return true;//<--- LE PUSE TRUE (tobi) ver si se usa el bool para manejo de errores
 
 }
 

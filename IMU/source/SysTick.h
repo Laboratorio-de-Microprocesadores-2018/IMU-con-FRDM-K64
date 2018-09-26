@@ -4,11 +4,10 @@
 //	                                                                           //
 /////////////////////////////////////////////////////////////////////////////////
 
-/***************************************************************************//**
-  @file     SysTick.h
-  @brief    SysTick driver
-  @author   Tobías Lifschitz
- ******************************************************************************/
+/**
+ * @file Systick.h
+ * @brief Systick driver to register periodic callbacks calls or single calls.
+ */
 
 #ifndef _SYSTICK_H_
 #define _SYSTICK_H_

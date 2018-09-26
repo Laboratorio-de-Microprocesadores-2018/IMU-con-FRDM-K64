@@ -1,16 +1,29 @@
-#include <Board.h>
-#include "SysTick.h"
+/////////////////////////////////////////////////////////////////////////////////
+//                              CONTROL DE ACCESO                              //
+//          Grupo 3 - Laboratorio de Microprocesadores - ITBA - 2018           //
+//	                                                                           //
+/////////////////////////////////////////////////////////////////////////////////
 
-#define DEBUG_SYSTICK
+/**
+ * @file SysTick.c
+ *
+ */
+
+
+#include "SysTick.h"
+#include "Board.h"
+
+
+// If defined, a GPIO pin is raised during sysTickHandler execution, in order
+// to make measurements.
+//#define DEBUG_SYSTICK
 
 #ifdef DEBUG_SYSTICK
-#include "GPIO.h"
+	#include "GPIO.h"
+	#define SYSTICK_TEST_PIN PORTNUM2PIN(PD,1)
 #endif
 
 
-
-
-#define SYSTICK_TEST_PIN PORTNUM2PIN(PD,1)
 
 
 // Structure to store SysTick callbacks

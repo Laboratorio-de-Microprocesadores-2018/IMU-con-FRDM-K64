@@ -33,15 +33,14 @@ typedef struct {
 	float x;
 	float y;
 	float z;
-
 }sData;
 
 
-/*FX_modes:There are three posible modes:
+/* FX_modes:There are three posible modes:
  * HYBRID: Both de Accelerometer and the Magnetometer are activated (ODR is reduced by a factor of 2)
  * ACC_ONLY:Only Accelerometer(normal ODR)
  * MAG_ONLY:Only Magnetometer(normal ODR)
- * */
+ */
 typedef enum{FX_ACC_ONLY=0,FX_MAG_ONLY,FX_HYBRID}FX_modes;
 
 /*FX_ODRs:There are seven posible output data rates
