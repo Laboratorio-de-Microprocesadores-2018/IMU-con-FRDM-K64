@@ -27,7 +27,7 @@ void autoSend()
 	CAN_WriteTxMB(CAN0, 0, &frame);
 }
 
-void initCANCommunications()
+void otherBoardCommunicationsInit()
 {
 	CAN_Config config;
 	CAN_GetDefaultConfig(&config);
@@ -46,7 +46,7 @@ void initCANCommunications()
 	sysTickAddCallback(&autoSend,3);
 }
 
-void sendMeasurement(Measurement m)
+void sendMeasurement2OtherBoards(Measurement m)
 {
 	CAN_DataFrame frame;
 
@@ -60,7 +60,7 @@ void sendMeasurement(Measurement m)
 }
 
 
-bool readMeasurement(Measurement * m)
+bool receiveOtherBoardsMeasurement(Measurement * m)
 {
 	if(isEmpty(&RxBuf))
 		return false;

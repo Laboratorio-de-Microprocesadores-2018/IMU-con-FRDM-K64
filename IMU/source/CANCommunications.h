@@ -19,26 +19,21 @@
 #define MASK_ID 0b11111110000
 #define MY_BOARD_ID 0x109
 
+#include "MeasurementProtocol.h"
 #include "stdbool.h"
-#include "stdint.h"
 
-typedef struct
-{
-	uint32_t boardID;
-	char angleID; 		///	ID representing roll (rolido 'R') o pitch (cabeceo 'C')
-	int angleVal;   /// V
-}Measurement;
 
 /**
  * @brief Configures CAN module
  */
-void initCANCommunications();
+void otherBoardCommunicationsInit();
+
 
 /**
  *  @brief Sends a measurement to other boards connected to CAN bus.
  *  @param m Structure containing measurement information.
  */
-void sendMeasurement(Measurement m);
+void sendMeasurement2OtherBoards(Measurement m);
 
 
 /**
@@ -46,6 +41,6 @@ void sendMeasurement(Measurement m);
  *  @param m Pointer to a Measurement structure to store data.
  *  @return True if a new measurement was read, false if not.
  */
-bool readMeasurement(Measurement * m);
+bool receiveOtherBoardsMeasurement(Measurement * m);
 
-#endif
+#endif //CANCOMMUNIACTIONS_H_
