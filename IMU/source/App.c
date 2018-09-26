@@ -107,8 +107,6 @@ void App_Run (void)
 
 	if(receiveOtherBoardsMeasurement(&m) == true);
 		sendMeasurement2Desktop(m.boardID,m.angleID,m.angleVal);
-
-
 }
 
 Orientation computePosition(sData a,sData magnetometer)

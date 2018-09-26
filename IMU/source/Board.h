@@ -43,8 +43,8 @@ enum { PA, PB, PC, PD, PE };
 #define LED_ACTIVE      LOW
 
 // On Board User Switches
-#define PIN_SW2         // ???
-#define PIN_SW3         // ???
+#define PIN_SW2         PORTNUM2PIN(PC,6)
+#define PIN_SW3         PORTNUM2PIN(PA,4)
 
 
 /////////////////////////////////////////////////////////////////////////////////
