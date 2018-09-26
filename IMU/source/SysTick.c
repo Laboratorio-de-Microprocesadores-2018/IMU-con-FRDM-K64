@@ -19,10 +19,11 @@
 //#define DEBUG_SYSTICK
 
 #ifdef DEBUG_SYSTICK
-#include "GPIO.h"
+	#include "GPIO.h"
+	#define SYSTICK_TEST_PIN PORTNUM2PIN(PD,1)
 #endif
 
-#define SYSTICK_TEST_PIN PORTNUM2PIN(PD,1)
+
 
 
 // Structure to store SysTick callbacks

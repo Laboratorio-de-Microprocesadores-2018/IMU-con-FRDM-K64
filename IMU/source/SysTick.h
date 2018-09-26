@@ -22,11 +22,10 @@
 /////////////////////////////////////////////////////////////////////////////////
 //                       Constants and macro definitions                       //
 /////////////////////////////////////////////////////////////////////////////////
-
 #define SYSTICK_MAX_CALLBACKS 10
 #define MS2S (1/1000.0)
 #define US2S (1/1000000.0)
-#define SYSTICK_ISR_PERIOD_S (1*MS2S)
+#define SYSTICK_ISR_PERIOD_S (250*US2S)
 
 /////////////////////////////////////////////////////////////////////////////////
 //                    Enumerations, structures and typedefs                    //
@@ -63,6 +62,8 @@ bool sysTickAddDelayCall(SysTickFnc fnc,float time);
  */
 uint64_t millis();
 
+
+//*******************************************************************************
 
 /////////////////////////////////////////////////////////////////////////////////
 #endif // _SYSTICK_H_

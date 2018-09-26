@@ -9,8 +9,6 @@
  *
  */
 
-
-
 #include "CircularBuffer.h"
 #include <string.h>
 

@@ -4,9 +4,10 @@
 //	                                                                           //
 /////////////////////////////////////////////////////////////////////////////////
 
+
 /**
  *	@file     CircularBuffer.h
- *	@brief    Generic circular buffer implementation.
+ *	@brief    Generic circular buffer implementation
  *	@author   Tobias Lifschitz
  *
  *	Generic circular buffer implementation using void pointers and static memory

@@ -9,6 +9,10 @@
  * @brief
  */
 
+#include "UART.h"
+#include "GPIO.h"
+#include "FXOS8700CQDriver.h"
+
 /////////////////////////////////////////////////////////////////////////////////
 //                             Included header files                           //
 /////////////////////////////////////////////////////////////////////////////////
@@ -67,7 +71,11 @@ void App_Init (void)
 {
 	otherBoardCommunicationsInit();
 	//desktopCommunicationsInit();
-	//AccelerometerInit();
+	FX_config accelConfig = FX_GetDefaultConfig();
+	FX_Init(accelConfig);
+
+	pinMode(PIN_LED_RED,OUTPUT);
+	digitalWrite(PIN_LED_RED,1);
 
 }
 static int i=0;
@@ -101,20 +109,14 @@ void App_Run (void)
 		lastMeasureTime = now;
 	}
 
-	if(receiveOtherBoardsMeasurement(&m) == true)
+	if(receiveOtherBoardsMeasurement(&m) == true);
 		//sendMeasurement2Desktop(m.boardID,m.angleID,m.angleVal);
 
 
-	if(receiveOtherBoardsMeasurement(&m) == true)
-	{
-		if(m.boardID == MY_BOARD_ID)
-			i+=1;
-		elseart
-			i+=2;
-	}
 }
 
 AngularPosition computePosition(RawData d)
 {
+
 
 }
