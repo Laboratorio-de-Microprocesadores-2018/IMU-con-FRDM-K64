@@ -4,6 +4,12 @@
 //	                                                                           //
 /////////////////////////////////////////////////////////////////////////////////
 
+/**
+ * @file Board.h
+ * @brief Kinetis K64 board definitions.
+ * @author Nicolas Magliola
+ */
+
 #ifndef _BOARD_H_
 #define _BOARD_H_
 
@@ -17,10 +23,10 @@ enum { PA, PB, PC, PD, PE };
 //                       Constants and macro definitions                       //
 /////////////////////////////////////////////////////////////////////////////////
 
-// GPIO pin definition
-#define PORTNUM2PIN(po, pi)  (((po)<<5) + (pi)) // Ex: PTB22 -> PORTNUM2PIN(PB,22)
+/** GPIO pin definition */
+#define PORTNUM2PIN(po, pi)  (((po)<<5) + (pi))
 
-// GPIO pin modes
+/** GPIO pin modes */
 #define INPUT           0
 #define OUTPUT          1
 #define INPUT_PULLUP    2
@@ -29,10 +35,10 @@ enum { PA, PB, PC, PD, PE };
 #define LOW     0
 #define HIGH    1
 
-// On Board User LEDs
+/** On Board User LEDs */
 #define PIN_LED_RED     PORTNUM2PIN(PB,22)
 #define PIN_LED_GREEN   PORTNUM2PIN(PE,26)
-#define PIN_LED_BLUE    PORTNUM2PIN(PB,21) // PTB21
+#define PIN_LED_BLUE    PORTNUM2PIN(PB,21) 
 
 #define LED_ACTIVE      LOW
 
@@ -40,8 +46,6 @@ enum { PA, PB, PC, PD, PE };
 #define PIN_SW2         PORTNUM2PIN(PC,6)
 #define PIN_SW3         PORTNUM2PIN(PA,4)
 
-#define SW_ACTIVE       // ???
-#define SW_INPUT_TYPE   // ???
 
 /////////////////////////////////////////////////////////////////////////////////
 #endif // _BOARD_H_

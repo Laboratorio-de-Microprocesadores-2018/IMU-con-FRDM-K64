@@ -1,3 +1,14 @@
+/////////////////////////////////////////////////////////////////////////////////
+//                              CONTROL DE ACCESO                              //
+//          Grupo 3 - Laboratorio de Microprocesadores - ITBA - 2018           //
+//	                                                                           //
+/////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * @file CircularBuffer.c
+ *
+ */
+
 #include "CircularBuffer.h"
 #include <string.h>
 

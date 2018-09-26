@@ -213,7 +213,7 @@
 								<option id="com.crt.advproject.link.crpenable.1787641256" name="Enable automatic placement of Code Read Protection field in image" superClass="com.crt.advproject.link.crpenable" useByScannerDiscovery="false"/>
 								<option id="com.crt.advproject.link.flashconfigenable.1102260985" name="Enable automatic placement of Flash Configuration field in image" superClass="com.crt.advproject.link.flashconfigenable" useByScannerDiscovery="false" value="true" valueType="boolean"/>
 								<option id="com.crt.advproject.link.ecrp.579736897" name="Enhanced CRP" superClass="com.crt.advproject.link.ecrp" useByScannerDiscovery="false"/>
-								<option id="com.crt.advproject.link.gcc.hdrlib.2095579941" name="Library" superClass="com.crt.advproject.link.gcc.hdrlib" useByScannerDiscovery="false"/>
+								<option id="com.crt.advproject.link.gcc.hdrlib.2095579941" name="Library" superClass="com.crt.advproject.link.gcc.hdrlib" useByScannerDiscovery="false" value="com.crt.advproject.gcc.link.hdrlib.codered.nohost" valueType="enumerated"/>
 								<option id="com.crt.advproject.link.gcc.nanofloat.1771243802" name="Enable printf float " superClass="com.crt.advproject.link.gcc.nanofloat" useByScannerDiscovery="false"/>
 								<option id="com.crt.advproject.link.gcc.nanofloat.scanf.1813334207" name="Enable scanf float " superClass="com.crt.advproject.link.gcc.nanofloat.scanf" useByScannerDiscovery="false"/>
 								<option id="com.crt.advproject.link.toram.2021907397" name="Link application to RAM" superClass="com.crt.advproject.link.toram" useByScannerDiscovery="false"/>
@@ -450,7 +450,7 @@
 								<option id="com.crt.advproject.link.crpenable.507060579" name="Enable automatic placement of Code Read Protection field in image" superClass="com.crt.advproject.link.crpenable"/>
 								<option id="com.crt.advproject.link.flashconfigenable.1839239902" name="Enable automatic placement of Flash Configuration field in image" superClass="com.crt.advproject.link.flashconfigenable" value="true" valueType="boolean"/>
 								<option id="com.crt.advproject.link.ecrp.543203463" name="Enhanced CRP" superClass="com.crt.advproject.link.ecrp"/>
-								<option id="com.crt.advproject.link.gcc.hdrlib.1099362733" name="Library" superClass="com.crt.advproject.link.gcc.hdrlib" useByScannerDiscovery="false" value="com.crt.advproject.gcc.link.hdrlib.none" valueType="enumerated"/>
+								<option id="com.crt.advproject.link.gcc.hdrlib.1099362733" name="Library" superClass="com.crt.advproject.link.gcc.hdrlib" useByScannerDiscovery="false" value="com.crt.advproject.gcc.link.hdrlib.codered.nohost" valueType="enumerated"/>
 								<option id="com.crt.advproject.link.gcc.nanofloat.1956301876" name="Enable printf float " superClass="com.crt.advproject.link.gcc.nanofloat"/>
 								<option id="com.crt.advproject.link.gcc.nanofloat.scanf.661792882" name="Enable scanf float " superClass="com.crt.advproject.link.gcc.nanofloat.scanf"/>
 								<option id="com.crt.advproject.link.toram.1837132720" name="Link application to RAM" superClass="com.crt.advproject.link.toram"/>

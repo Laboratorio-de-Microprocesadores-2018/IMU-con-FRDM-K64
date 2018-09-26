@@ -6,24 +6,35 @@
 
 /**
  * @file App.c
- * @brief Generic project.
+ * @brief
  */
-
-#include "UART.h"
-#include "GPIO.h"
 
 /////////////////////////////////////////////////////////////////////////////////
 //                             Included header files                           //
 /////////////////////////////////////////////////////////////////////////////////
+#include "FXOS8700CQDriver.h"
+#include "CANCommunications.h"
+#include "DesktopCommunications.h"
+#include "SysTick.h"
+#include "math.h"
 
 /////////////////////////////////////////////////////////////////////////////////
 //                       Constants and macro definitions                       //
 /////////////////////////////////////////////////////////////////////////////////
-#define MSG_LENGTH	10
+#define MEASURE_PERIOD_MS 100 // Time in milliseconds between two measurements
+#define TIMEOUT_MS 2000		// Maximum time in milliseconds between to measurements
+#define THRESHOLD 5 		// Threshold in degrees for measurements
 
 /////////////////////////////////////////////////////////////////////////////////
 //                    Enumerations, structures and typedefs                    //
 /////////////////////////////////////////////////////////////////////////////////
+
+typedef struct{
+	int roll;
+	int pitch;
+	int yaw;
+}Orientation;
+
 
 /////////////////////////////////////////////////////////////////////////////////
 //                         Global variables definition                         //
@@ -33,49 +44,77 @@
 //                   Local variable definitions ('static')                     //
 /////////////////////////////////////////////////////////////////////////////////
 
+static sData accelerometer,magnetometer;
+static uint32_t lastMeasureTime,lastRollTime,lastPitchTime;
+static Orientation lastPos;
+static Measurement m;
+
 /////////////////////////////////////////////////////////////////////////////////
 //                   Local function prototypes ('static')                      //
 /////////////////////////////////////////////////////////////////////////////////
 
+static Orientation computePosition(sData accelerometer,sData magnetometer);
+
+
 /////////////////////////////////////////////////////////////////////////////////
 //                         Global function prototypes                          //
 /////////////////////////////////////////////////////////////////////////////////
-void switchCallback(void);
 
-/** Función que se llama 1 vez, al comienzo del programa */
 void App_Init (void)
 {
+	// Init accelerometer
+	FX_config accelConfig = FX_GetDefaultConfig();
+	FX_Init(accelConfig);
 
+	// Init communications with other boards throug CAN bus
+	otherBoardCommunicationsInit();
 
-	UARTInit();
-
-	pinMode(PIN_LED_RED,OUTPUT);
-	digitalWrite(PIN_LED_RED,1);
-
-	pinMode(PIN_SW3,INPUT);
-	pinConfigureIRQ(PIN_SW3, IRQC_INTERRUPT_FALLING, switchCallback);
-
+	// Init communication with desktop PC through UART
+	desktopCommunicationsInit();
 }
 
-/** Función que se llama constantemente en un ciclo infinito */
+
 void App_Run (void)
 {
-	static uint8_t message[MSG_LENGTH];
-	static uint8_t len;
-	len = UARTRecieveData(&message, MSG_LENGTH);
-	if(len != 0)
+	uint64_t now = millis();
+
+	if((now-lastMeasureTime)>MEASURE_PERIOD_MS)
 	{
-		if(message[0] == 's')
-			digitalToggle(PIN_LED_RED);
+		if(FX_GetData(&accelerometer,&magnetometer)==true)
+		{
+			Orientation currPos = computePosition(accelerometer,magnetometer);
+
+			if(fabs(currPos.roll-lastPos.roll)>THRESHOLD || (now-lastRollTime) > TIMEOUT_MS)
+			{
+				m.boardID = MY_BOARD_ID;
+				m.angleID = 'R';
+				m.angleVal = currPos.roll;
+				sendMeasurement2OtherBoards(m); // Si habilito self-receive en CAN se manda solo a la compu mas abajo
+				lastRollTime = now;
+			}
+
+			if(fabs(currPos.pitch-lastPos.pitch)>THRESHOLD || (now-lastPitchTime) > TIMEOUT_MS)
+			{
+				m.boardID = MY_BOARD_ID;
+				m.angleID = 'P';
+				m.angleVal = currPos.roll;
+				sendMeasurement2OtherBoards(m);
+				lastPitchTime = now;
+			}
+			lastMeasureTime = now;
+		}
 	}
 
-
+	if(receiveOtherBoardsMeasurement(&m) == true);
+		sendMeasurement2Desktop(m.boardID,m.angleID,m.angleVal);
 }
 
-
-void switchCallback(void)
+Orientation computePosition(sData accelerometer,sData magnetometer)
 {
-	uint8_t message[] = "Hello world";
-	uint8_t len = sizeof(message) - 1;
-	UARTSendData(&message, len);
+	Orientation o;
+	// CUENTAS
+	o.pitch=0;
+	o.roll=0;
+	o.yaw=0;
+	return o;
 }
