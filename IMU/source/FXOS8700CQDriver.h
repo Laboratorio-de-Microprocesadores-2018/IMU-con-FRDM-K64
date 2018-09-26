@@ -82,6 +82,8 @@ FX_modes FX_GetMode(void);
 FX_accScales FX_GetScale(void);
 
 bool FX_GetData(sData *acc, sData *mag);
+bool FX_GetAccData(sData *acc);
+bool FX_GetMagData(sData *mag);
 
 bool FX_newData();
 

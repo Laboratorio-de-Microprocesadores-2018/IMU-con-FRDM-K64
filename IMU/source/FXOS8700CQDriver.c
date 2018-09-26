@@ -257,6 +257,20 @@ FX_accScales FX_GetScale()
 	return currentConf.scale;
 }
 
+bool FX_GetAccData(sData *acc)
+{
+	//assert(acc!=NULL)
+	*acc=accData;
+	dataFlag=false;
+	return 0;//ver si se usa el bool para manejo de errores
 
+}
+bool FX_GetMagData(sData *mag)
+{
+	//assert(mag!=NULL)
+	*mag=magData;
+	dataFlag=false;
+	return 0;//ver si se usa el bool para manejo de errores
+}
 
 
