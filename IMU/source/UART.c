@@ -21,6 +21,20 @@
 #define UART0_TX_PIN 	17   //PTB17
 #define UART0_RX_PIN 	16   //PTB16
 
+#define UART0FIFOEXP	(((UART0->PFIFO) & UART_PFIFO_TXFIFOSIZE_MASK) >> (UART_PFIFO_TXFIFOSIZE_SHIFT))
+#define UART0FIFOSIZE	(1 << (UART0FIFOEXP + 1))
+
+#define TIESTAT(x)		((((uint8_t)(((uint8_t)(x)) & UART_C2_TIE_MASK)) == UART_C2_TIE_MASK)? true: false)
+#define TDRESTAT(x)		((((uint8_t)(((uint8_t)(x)) & UART_S1_TDRE_MASK)) == UART_S1_TDRE_MASK)? true: false)
+// #define TDRESTAT(x)		(((uint8_t)(((uint8_t)(x)) & UART_S1_TDRE_MASK)) >> UART_S1_TDRE_SHIFT)
+
+#define RIESTAT(x)		((((uint8_t)(((uint8_t)(x)) & UART_C2_RIE_MASK)) == UART_C2_RIE_MASK)? true: false)
+#define RDRFSTAT(x)		((((uint8_t)(((uint8_t)(x)) & UART_S1_RDRF_MASK)) == UART_S1_RDRF_MASK)? true: false)
+// #define RDRFSTAT(x)		(((uint8_t)(((uint8_t)(x)) & UART_S1_RDRF_MASK)) >> UART_S1_RDRF_SHIFT)
+
+#define TXOFStat(x)		(((uint8_t)(((uint8_t)(x)) & UART_SFIFO_TXOF_MASK)) >> UART_SFIFO_TXOF_SHIFT)
+#define RXOFStat(x)		(((uint8_t)(((uint8_t)(x)) & UART_SFIFO_RXOF_MASK)) >> UART_SFIFO_RXOF_SHIFT)
+
 typedef enum
 {
 	PORT_mAnalog,
@@ -47,8 +61,13 @@ typedef enum
 	PORT_eInterruptAsserted		= 0x0C,
 } PORTEvent_t;
 
-static bool errFlag;
+typedef enum{TXOF_ERR = 0, BUFFFULL_ERR, BUFFEMPTY_ERR, UART0IRQ_ERR, NO_ERR};
+
+static uint8_t err;
+
 static uint8_t transferWord;
+
+static bool errFlag;
 
 NEW_CIRCULAR_BUFFER(transmitBuffer,BUFFER_SIZE,sizeof(transferWord));
 NEW_CIRCULAR_BUFFER(recieveBuffer,BUFFER_SIZE,sizeof(transferWord));
@@ -102,13 +121,14 @@ void UARTInit (void)
 	UART0->PFIFO = UART_PFIFO_RXFE_MASK | UART_PFIFO_TXFE_MASK;
 
 	//Enable UART0 Xmiter and Rcvr
-	UART0->C2 = UART_C2_TE_MASK | UART_C2_RE_MASK;
+	UART0->C2 = UART_C2_TE_MASK | UART_C2_RE_MASK | UART_C2_RIE_MASK;
+
+	err = NO_ERR;
 
 /*	The callback of the display is added to the sysTick callback list*/
 // SysTickAddCallback(&UARTPisr,(float)(1/UART_CALL_FREQUENCY));
 
 }
-
 
 void UARTSetBaudRate (UART_Type *uart, uint32_t baudrate)
 {
@@ -128,34 +148,21 @@ void UARTSetBaudRate (UART_Type *uart, uint32_t baudrate)
 	uart->C4 = (uart->C4 & ~UART_C4_BRFA_MASK) | UART_C4_BRFA(brfa);
 }
 
-/*
-void UARTPisr(void)
-{
-	if(sendFlag == true){
-		if(((UART0->S1)& UART_S1_TDRE_MASK) == 0)
-		{
-			UART0->D = message;
-			sendFlag = 0;
-		}
-	}else if(recieveFlag == true)
-	{
-		if(((UART0->S1)& UART_S1_RDRF_MASK) == 0)
-		{
-			message = UART0->D;
-		}
-	}
 
-*/
 
 uint8_t UARTSendData( uint8_t * tx_data, uint8_t len)
 {
-	for(int i = 0; (i < len) && (!errFlag); i++)
+	if( len > 0)
 	{
-		if((push(&transmitBuffer, (uint8_t *)tx_data[i])))
+		for(int i = 0; (i < len) && (err == NO_ERR); i++)
 		{
-			errFlag = true;
-			return false;
+			if(!push(&transmitBuffer, &tx_data[i]))
+			{
+				err = BUFFFULL_ERR;
+				return false;
+			}
 		}
+		UART0->C2 |= UART_C2_TIE_MASK;
 	}
 
 	return true;
@@ -172,52 +179,79 @@ uint8_t UARTRecieveData( uint8_t * rx_data, uint8_t len)
 
 __ISR__ UART0_RX_TX_IRQHandler(void)
 {
-	if(((UART0->S1) & UART_S1_TDRE_MASK) == true)
+	uint8_t debugSRegister, debugCRegister;
+	debugSRegister = UART0->S1;
+	debugCRegister = UART0->C2;
+
+	if(TDRESTAT(UART0->S1) && TIESTAT(UART0->C2))
 		transmitData();
-	else if(((UART0->S1)& UART_S1_RDRF_MASK) == true)
-	{
+
+	else if(RDRFSTAT(UART0->S1) && RIESTAT(UART0->C2))
 		recieveData();
-	}else
-		errFlag = true;
+
+	else{}
+		//err = UART0IRQ_ERR;
 
 }
 
 void transmitData(void)
 {
+	uint8_t debugRegister;
+	debugRegister = UART0->S1;
+
+	int tBuffCount = numel(&transmitBuffer);
+	int FIFOLeft = UART0FIFOSIZE - (UART0->TCFIFO);
+	if( tBuffCount < FIFOLeft )
+		UART0->C2 &= (~UART_C2_TIE_MASK);
+
 	if(isEmpty(&transmitBuffer) == false)
 	{
-		int k = numel(&transmitBuffer);
-		for(int i = 0; (i < k) && (!errFlag); i++)
+		for(int i = 0; (i < (tBuffCount - 1)) && (i < (FIFOLeft-1)) && (err == NO_ERR); i++)
 		{
 			loadBuffer2Register();
 		}
-		if(((((UART0->S1) & UART_S1_TDRE_MASK) == true)) && (!errFlag))
+		if(err == NO_ERR)
 		{
-			loadBuffer2Register();
-		}else
-		{
-			errFlag = true;
-			return;
+			bool a = TDRESTAT(UART0->S1);
+			bool b = !TXOFStat(UART0->SFIFO);
+			//a = ( TDRESTAT(UART0->S1) || !TXOFStat(UART0->SFIFO) );
+			if( a || b)
+			{
+				loadBuffer2Register();
+			}else
+			{
+				err = TXOF_ERR;
+				return;
+			}
 		}
+
 	}
+
 }
 void recieveData(void)
 {
 	if(isFull(&recieveBuffer) == false)
 	{
-		int k = UART0->TCFIFO;
-		for(int i = 0; (i < k) && (!errFlag); i++)
+		int FIFOCount = UART0->RCFIFO;
+		for(int i = 0; (i < (FIFOCount - 1)) && (err == NO_ERR); i++)
 		{
 			loadRegister2Buffer();
 		}
-		if((((UART0->S1) & UART_S1_RDRF_MASK) == true) && (!errFlag))
+		if(err == NO_ERR)
 		{
-			loadRegister2Buffer();
-		}else
-		{
-			errFlag = true;
-			return;
+			if((RDRFSTAT(UART0->S1)) && (err == NO_ERR))
+			{
+				loadRegister2Buffer();
+			}else
+			{
+				errFlag = true;
+				return;
+			}
 		}
+	}else
+	{
+		err = BUFFFULL_ERR;
+		return;
 	}
 }
 
@@ -227,7 +261,7 @@ void loadBuffer2Register(void)
 		UART0->D = transferWord;
 	else
 	{
-		errFlag = true;
+		err = BUFFEMPTY_ERR;
 		return;
 	}
 }
@@ -237,7 +271,7 @@ void loadRegister2Buffer(void)
 	transferWord = UART0->D;
 	if(!push(&recieveBuffer, &transferWord))
 	{
-		errFlag = true;
+		err = BUFFFULL_ERR;
 		return;
 	}
 }
