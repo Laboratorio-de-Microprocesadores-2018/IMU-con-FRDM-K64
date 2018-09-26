@@ -244,7 +244,7 @@ bool FX_GetData(sData *acc, sData *mag)
 	*acc=accData;
 	*mag=magData;
 	dataFlag=false;
-	return 0;//ver si se usa el bool para manejo de errores
+	return true;//<--- LE PUSE TRUE (tobi) ver si se usa el bool para manejo de errores
 
 }
 
