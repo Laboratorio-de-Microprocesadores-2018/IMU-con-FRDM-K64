@@ -80,6 +80,24 @@ void App_Init (void)
 
 void App_Run (void)
 {
+	/*uint32_t counter=0;
+
+	sData acc,mag;
+	if(FX_newData())
+	{
+		FX_GetData(&acc,&mag);
+		if(a<250)
+		{
+			buffer[a]=acc;
+			a++;
+		}
+		else
+		{
+			a=0;
+		}
+
+	}*/
+
 	uint64_t now = millis();
 
 	if((now-lastMeasureTime)>MEASURE_PERIOD_MS)

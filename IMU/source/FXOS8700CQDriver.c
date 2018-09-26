@@ -64,7 +64,8 @@ static void sDataReady(void);
 
 static void sDataReady(void)
 {
-
+	static uint32_t counter=0;
+	counter++;
 	//I2C_SetDefaultConfig(&i2cConfig, DEF_SLAVE_ADDR,I2C_FREQ_48K8,readData);
 
 	switch(currentConf.mode)
@@ -148,7 +149,7 @@ bool FX_newData()
 
 FX_config FX_GetDefaultConfig(void)
 {
-	FX_config defConf={FX_HYBRID,FX_SCALE2,FX_ODR_400};
+	FX_config defConf={FX_HYBRID,FX_SCALE2,FX_ODR_200};
 	return defConf;
 }
 
