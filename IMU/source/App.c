@@ -111,12 +111,15 @@ void App_Run (void)
 
 }
 
-Orientation computePosition(sData accelerometer,sData magnetometer)
+Orientation computePosition(sData a,sData magnetometer)
 {
 	Orientation o;
-	// CUENTAS
-	o.pitch=0;
-	o.roll=0;
+	int norm = sqrt(a.x*a.x+a.y*a.y+a.z*a.z);
+	a.x/=norm;
+	a.y/=norm;
+	a.z/=norm;
+	o.pitch=atan(a.x/sqrt(a.y*a.y+a.z*a.z));
+	o.roll=atan2(a.y,sqrt(a.x*a.x+a.z*a.z));
 	o.yaw=0;
 	return o;
 }

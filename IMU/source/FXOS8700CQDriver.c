@@ -51,7 +51,7 @@ static FX_config currentConf;
 
 
 static uint8_t dataBuff[12];
-static I2C_CONTROL_T i2cConfig; // TIRABA ERROR={0,0,0,0,0,0,0,dataBuff,0,0,NULL};
+static I2C_CONTROL_T i2cConfig;
 static bool dataFlag;
 
 /////////////////////////////////////////////////////////////////////////////////
@@ -155,8 +155,9 @@ bool FX_Init(FX_config conf)
 {
 	i2cConfig.data = dataBuff; // LO PONGO ACA PORQUE LA INICIALIZACION ESTATICA NO ANDABA
 
-	// ARREGLAR I2C_init();
-	// ARREGLAR I2C_SetDefaultConfig(&i2cConfig, DEF_SLAVE_ADDR,readData);
+	I2C_SetDefaultConfig(&i2cConfig, DEF_SLAVE_ADDR,I2C_FREQ_48K8,readData);
+	I2C_init(&i2cConfig);
+
 
 	/**/
 	i2cConfig.address_reg=WHO_AM_I;
