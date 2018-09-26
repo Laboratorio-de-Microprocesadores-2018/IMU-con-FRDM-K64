@@ -89,7 +89,8 @@ void App_Run (void)
 				m.boardID = MY_BOARD_ID;
 				m.angleID = 'R';
 				m.angleVal = currPos.roll;
-				sendMeasurement2OtherBoards(m); // Si habilito self-receive en CAN se manda solo a la compu mas abajo
+				//sendMeasurement2OtherBoards(m); // Si habilito self-receive en CAN se manda solo a la compu mas abajo
+				sendMeasurement2Desktop(m.boardID,m.angleID,m.angleVal);
 				lastRollTime = now;
 			}
 
@@ -98,26 +99,27 @@ void App_Run (void)
 				m.boardID = MY_BOARD_ID;
 				m.angleID = 'P';
 				m.angleVal = currPos.roll;
-				sendMeasurement2OtherBoards(m);
+				//sendMeasurement2OtherBoards(m);
+				sendMeasurement2Desktop(m.boardID,m.angleID,m.angleVal);
 				lastPitchTime = now;
 			}
 			lastMeasureTime = now;
 		}
 	}
 
-	if(receiveOtherBoardsMeasurement(&m) == true);
-		sendMeasurement2Desktop(m.boardID,m.angleID,m.angleVal);
+//	if(receiveOtherBoardsMeasurement(&m) == true)
+//		sendMeasurement2Desktop(m.boardID,m.angleID,m.angleVal);
 }
 
 Orientation computePosition(sData a,sData magnetometer)
 {
 	Orientation o;
-	int norm = sqrt(a.x*a.x+a.y*a.y+a.z*a.z);
+	float norm = sqrt(a.x*a.x+a.y*a.y+a.z*a.z);
 	a.x/=norm;
 	a.y/=norm;
 	a.z/=norm;
-	o.pitch=atan(a.x/sqrt(a.y*a.y+a.z*a.z));
-	o.roll=atan2(a.y,sqrt(a.x*a.x+a.z*a.z));
+	o.pitch=(int)((180/M_PI)*atan(a.x/sqrt(a.y*a.y+a.z*a.z)));
+	o.roll=(int)((180/M_PI)*atan2(a.y,sqrt(a.x*a.x+a.z*a.z)));
 	o.yaw=0;
 	return o;
 }

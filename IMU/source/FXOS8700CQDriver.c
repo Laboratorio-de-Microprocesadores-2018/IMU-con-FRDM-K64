@@ -64,7 +64,8 @@ static void sDataReady(void);
 
 static void sDataReady(void)
 {
-	// ARREGLAR I2C_SetDefaultConfig(&i2cConfig, DEF_SLAVE_ADDR,readData);
+
+	//I2C_SetDefaultConfig(&i2cConfig, DEF_SLAVE_ADDR,I2C_FREQ_48K8,readData);
 
 	switch(currentConf.mode)
 	{
@@ -153,9 +154,11 @@ FX_config FX_GetDefaultConfig(void)
 
 bool FX_Init(FX_config conf)
 {
-	i2cConfig.data = dataBuff; // LO PONGO ACA PORQUE LA INICIALIZACION ESTATICA NO ANDABA
-
 	I2C_SetDefaultConfig(&i2cConfig, DEF_SLAVE_ADDR,I2C_FREQ_48K8,readData);
+
+	i2cConfig.data = dataBuff;
+
+
 	I2C_init(&i2cConfig);
 
 
@@ -169,6 +172,7 @@ bool FX_Init(FX_config conf)
 	/**/
 	i2cConfig.address_reg=CTRL_REG1;
 	i2cConfig.data[0]=0;
+
 	if(I2C_Blocking_WriteData(&i2cConfig) != I2C_NO_FAULT)
 		digitalWrite(PIN_LED_RED,0);
 
@@ -220,7 +224,7 @@ bool FX_Init(FX_config conf)
 
 	/*IRQ pin configuration for data ready interrupt*/
 	pinMode(PORTNUM2PIN(PC,13),INPUT);
-	pinConfigureIRQ(PORTNUM2PIN(PC,13),IRQC_INTERRUPT_FALLING, sDataReady);
+	pinConfigureIRQ(PORTNUM2PIN(PC,13),IRQC_INTERRUPT_FALLING,sDataReady);
 
 
 	//por ahora lo dejo al final cosa de que el driver hace enable en init
@@ -230,12 +234,9 @@ bool FX_Init(FX_config conf)
 	if(I2C_Blocking_WriteData(&i2cConfig) != I2C_NO_FAULT)
 		digitalWrite(PIN_LED_RED,0);
 
-
-
 	currentConf=conf;
 
-	return 0;//VER DESPUES SI SE PONE ALGO
-
+	return true;//VER DESPUES SI SE PONE ALGO
 }
 
 
