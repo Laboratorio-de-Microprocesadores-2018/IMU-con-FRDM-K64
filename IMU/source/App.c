@@ -19,6 +19,7 @@
 /////////////////////////////////////////////////////////////////////////////////
 //                       Constants and macro definitions                       //
 /////////////////////////////////////////////////////////////////////////////////
+#define MSG_LENGTH	10
 
 /////////////////////////////////////////////////////////////////////////////////
 //                    Enumerations, structures and typedefs                    //
@@ -39,19 +40,42 @@
 /////////////////////////////////////////////////////////////////////////////////
 //                         Global function prototypes                          //
 /////////////////////////////////////////////////////////////////////////////////
+void switchCallback(void);
 
 /** Función que se llama 1 vez, al comienzo del programa */
 void App_Init (void)
 {
 
+
+	UARTInit();
+
 	pinMode(PIN_LED_RED,OUTPUT);
 	digitalWrite(PIN_LED_RED,1);
 
+	pinMode(PIN_SW3,INPUT);
+	pinConfigureIRQ(PIN_SW3, IRQC_INTERRUPT_FALLING, switchCallback);
 
 }
 
 /** Función que se llama constantemente en un ciclo infinito */
 void App_Run (void)
 {
+	static uint8_t message[MSG_LENGTH];
+	static uint8_t len;
+	len = UARTRecieveData(&message, MSG_LENGTH);
+	if(len != 0)
+	{
+		if(message[0] == 's')
+			digitalToggle(PIN_LED_RED);
+	}
 
+
+}
+
+
+void switchCallback(void)
+{
+	uint8_t message[] = "Hello world";
+	uint8_t len = sizeof(message) - 1;
+	UARTSendData(&message, len);
 }
