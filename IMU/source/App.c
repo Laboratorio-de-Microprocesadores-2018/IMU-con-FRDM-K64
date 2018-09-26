@@ -44,13 +44,7 @@
 /** Función que se llama 1 vez, al comienzo del programa */
 void App_Init (void)
 {
-	/*
-	FXInit();
-	*/
 
-
-	pinMode(PIN_LED_RED,OUTPUT);
-	digitalWrite(PIN_LED_RED,1);
 
 
 }
@@ -59,12 +53,6 @@ void App_Init (void)
 void App_Run (void)
 {
 
-
-	/*
-	sData acc,mag;
-	if(LlegoAlgo())
-		GetData(&acc,&mag);
-	*/
 
 
 }
