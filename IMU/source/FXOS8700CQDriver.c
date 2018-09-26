@@ -247,7 +247,15 @@ bool FX_GetData(sData *acc, sData *mag)
 
 }
 
+FX_modes FX_GetMode()
+{
+	return currentConf.mode;
+}
 
+FX_accScales FX_GetScale()
+{
+	return currentConf.scale;
+}
 
 
 

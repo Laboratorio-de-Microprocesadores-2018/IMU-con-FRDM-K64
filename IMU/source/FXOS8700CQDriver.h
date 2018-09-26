@@ -73,13 +73,13 @@ typedef struct {
 /////////////////////////////////////////////////////////////////////////////////
 
 
-FX_config FX_GetDefaultConfig(void);//Not developed
+FX_config FX_GetDefaultConfig(void);
 bool FX_Init(FX_config conf);
 void FX_Enable(void);//Not developed
 void Fx_Disable(void);//Not developed
 //bool FX_Configure();//Not developed (WARNING: while configuring the sensor should be disabled)
-//FX_modes FX_GetMode(void);
-//FX_scales FX_GetScale(void);
+FX_modes FX_GetMode(void);
+FX_accScales FX_GetScale(void);
 
 bool FX_GetData(sData *acc, sData *mag);
 
