@@ -18,6 +18,6 @@
 
 void desktopCommunicationsInit();
 
-void sendMeasurement2Desktop(uint16_t boardID, uint8_t angleID, int16_t angleVal);
+void sendMeasurement2Desktop(uint8_t boardID, uint8_t angleID, int16_t angleVal);
 
 #endif

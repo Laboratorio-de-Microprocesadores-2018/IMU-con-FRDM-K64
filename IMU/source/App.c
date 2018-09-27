@@ -21,7 +21,7 @@
 /////////////////////////////////////////////////////////////////////////////////
 //                       Constants and macro definitions                       //
 /////////////////////////////////////////////////////////////////////////////////
-#define MEASURE_PERIOD_MS 100 // Time in milliseconds between two measurements
+#define MEASURE_PERIOD_MS 50 // Time in milliseconds between two measurements
 #define TIMEOUT_MS 2000		// Maximum time in milliseconds between to measurements
 #define THRESHOLD 5 		// Threshold in degrees for measurements
 
@@ -106,24 +106,23 @@ void App_Run (void)
 		{
 			Orientation currPos = computePosition(accelerometer,magnetometer);
 
-
-			if(fabs(currPos.roll-lastPos.roll)>THRESHOLD || (now-lastRollTime) > TIMEOUT_MS)
+			if(fabs(currPos.roll-lastPos.roll)>=THRESHOLD || (now-lastRollTime) > TIMEOUT_MS)
 			{
 				m.boardID = MY_BOARD_ID;
 				m.angleID = 'R';
 				m.angleVal = currPos.roll;
 				//sendMeasurement2OtherBoards(m); // Si habilito self-receive en CAN se manda solo a la compu mas abajo
-				sendMeasurement2Desktop(m.boardID,m.angleID,m.angleVal);
+				sendMeasurement2Desktop(m.boardID-BASE_ID,m.angleID,m.angleVal);
 				lastRollTime = now;
 			}
 
-			if(fabs(currPos.pitch-lastPos.pitch)>THRESHOLD || (now-lastPitchTime) > TIMEOUT_MS)
+			if(fabs(currPos.pitch-lastPos.pitch)>=THRESHOLD || (now-lastPitchTime) > TIMEOUT_MS)
 			{
 				m.boardID = MY_BOARD_ID;
-				m.angleID = 'P';
-				m.angleVal = currPos.roll;
+				m.angleID = 'C';
+				m.angleVal = currPos.pitch;
 				//sendMeasurement2OtherBoards(m);
-				sendMeasurement2Desktop(m.boardID,m.angleID,m.angleVal);
+				sendMeasurement2Desktop(m.boardID-BASE_ID,m.angleID,m.angleVal);
 				lastPitchTime = now;
 			}
 			lastMeasureTime = now;
@@ -135,7 +134,7 @@ void App_Run (void)
 //		sendMeasurement2Desktop(m.boardID,m.angleID,m.angleVal);
 }
 
-Orientation computePosition(sData a,sData magnetometer)
+Orientation computePosition(sData a,sData m)
 {
 	Orientation o;
 	float norm = sqrt(a.x*a.x+a.y*a.y+a.z*a.z);
