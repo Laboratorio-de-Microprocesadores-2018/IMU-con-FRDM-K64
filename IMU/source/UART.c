@@ -4,14 +4,24 @@
  *  Created on: 14 sep. 2018
  *      Author: sebas
  */
+/////////////////////////////////////////////////////////////////////////////////
+//                        Intertial Motion Unit (IMU)						   //
+//																			   //
+//          Grupo 3 - Laboratorio de Microprocesadores - ITBA - 2018           //
+//	                                                                           //
+/////////////////////////////////////////////////////////////////////////////////
 
+/////////////////////////////////////////////////////////////////////////////////
+//                             Included header files                           //
+/////////////////////////////////////////////////////////////////////////////////
 #include <stdint.h>
 #include "hardware.h"
 #include "UART.h"
-//#include "SysTick.h"
-#include "CircularBuffer.h"
+#include "GPIO.h"
 
-
+/////////////////////////////////////////////////////////////////////////////////
+//                       Constants and macro definitions                       //
+/////////////////////////////////////////////////////////////////////////////////
 #define UART_HAL_DEFAULT_BAUDRATE	9600
 
 #define UART_CALL_FREQUENCY			100
@@ -35,50 +45,46 @@
 #define TXOFStat(x)		(((uint8_t)(((uint8_t)(x)) & UART_SFIFO_TXOF_MASK)) >> UART_SFIFO_TXOF_SHIFT)
 #define RXOFStat(x)		(((uint8_t)(((uint8_t)(x)) & UART_SFIFO_RXOF_MASK)) >> UART_SFIFO_RXOF_SHIFT)
 
-typedef enum
-{
-	PORT_mAnalog,
-	PORT_mGPIO,
-	PORT_mAlt2,
-	PORT_mAlt3,
-	PORT_mAlt4,
-	PORT_mAlt5,
-	PORT_mAlt6,
-	PORT_mAlt7,
 
-} PORTMux_t;
+/////////////////////////////////////////////////////////////////////////////////
+//                    Enumerations, structures and typedefs                    //
+/////////////////////////////////////////////////////////////////////////////////
+typedef enum{TXOF_ERR = 0, RXOF_ERR, BUFFFULL_ERR, BUFFEMPTY_ERR, UART0IRQ_ERR, NO_ERR};
 
-typedef enum
-{
-	PORT_eDisabled				= 0x00,
-	PORT_eDMARising				= 0x01,
-	PORT_eDMAFalling			= 0x02,
-	PORT_eDMAEither				= 0x03,
-	PORT_eInterruptDisasserted	= 0x08,
-	PORT_eInterruptRising		= 0x09,
-	PORT_eInterruptFalling		= 0x0A,
-	PORT_eInterruptEither		= 0x0B,
-	PORT_eInterruptAsserted		= 0x0C,
-} PORTEvent_t;
 
-typedef enum{TXOF_ERR = 0, BUFFFULL_ERR, BUFFEMPTY_ERR, UART0IRQ_ERR, NO_ERR};
+/////////////////////////////////////////////////////////////////////////////////
+//                         Global variables definition                         //
+/////////////////////////////////////////////////////////////////////////////////
 
+
+/////////////////////////////////////////////////////////////////////////////////
+//                         Global function prototypes                          //
+/////////////////////////////////////////////////////////////////////////////////
+
+/////////////////////////////////////////////////////////////////////////////////
+//                   Local variable definitions ('static')                     //
+/////////////////////////////////////////////////////////////////////////////////
 static uint8_t err;
-
 static uint8_t transferWord;
-
 static bool errFlag;
-
 NEW_CIRCULAR_BUFFER(transmitBuffer,BUFFER_SIZE,sizeof(transferWord));
 NEW_CIRCULAR_BUFFER(recieveBuffer,BUFFER_SIZE,sizeof(transferWord));
 
-//static void UARTPisr(void);
+/////////////////////////////////////////////////////////////////////////////////
+//                   Local function prototypes ('static')                      //
+/////////////////////////////////////////////////////////////////////////////////
 static void transmitData(void);
 static void recieveData(void);
 static void loadBuffer2Register(void);
 static void loadRegister2Buffer(void);
 
 
+/**
+ * @brief Initializes the module of UART in the nxp cortex.
+ * @param Not developed.
+ * @param Not developed.
+ * @return Not developed.
+ */
 void UARTInit (void)
 {
 
@@ -131,11 +137,13 @@ void UARTInit (void)
 
 	err = NO_ERR;
 
-/*	The callback of the display is added to the sysTick callback list*/
-// SysTickAddCallback(&UARTPisr,(float)(1/UART_CALL_FREQUENCY));
-
 }
 
+/**
+ * @brief Sets the requested Baud Rate in the corresponding register of the UART module desired.
+ * @param uart Is the pointer to the base of the map memory of the UART module where the Baud Rate is changed.
+ * @param baudrate is the real Baud Rate you want to set.
+ */
 void UARTSetBaudRate (UART_Type *uart, uint32_t baudrate)
 {
 	uint16_t sbr, brfa;
@@ -155,8 +163,13 @@ void UARTSetBaudRate (UART_Type *uart, uint32_t baudrate)
 }
 
 
-
-uint8_t UARTSendData( uint8_t * tx_data, uint8_t len)
+/**
+ * @brief Service funcition to send the rquired data through the UART module.
+ * @param tx_data Pointer to the begining of the chunk of data to transmit.
+ * @param len Length of the chunk of data to transmit.
+ * @return true if everything went fine, false if there was an error.
+ */
+bool UARTSendData( uint8_t * tx_data, uint8_t len)
 {
 	#ifdef MEASURE_UART
 		BITBAND_REG(MEASURE_UART_GPIO->PDOR, MEASURE_UART_PIN) = 1;
@@ -174,30 +187,38 @@ uint8_t UARTSendData( uint8_t * tx_data, uint8_t len)
 		UART0->C2 |= UART_C2_TIE_MASK;
 	}
 
-#ifdef MEASURE_UART
-	BITBAND_REG(MEASURE_UART_GPIO->PDOR, MEASURE_UART_PIN) = 0;
-#endif
+	#ifdef MEASURE_UART
+		BITBAND_REG(MEASURE_UART_GPIO->PDOR, MEASURE_UART_PIN) = 0;
+	#endif
 	return true;
 }
 
-uint8_t UARTRecieveData( uint8_t * rx_data, uint8_t len)
+/**
+ * @brief Service funcition to get the recieved data through the UART module.
+ * @param rx_data Pointer to the begining of the memory place where to save the data.
+ * @param len Maximum amount of data words to be saved.
+ * @return true if everything went fine, false if there was an error.
+ */
+bool UARTRecieveData( uint8_t * rx_data, uint8_t len)
 {
-#ifdef MEASURE_UART
-	BITBAND_REG(MEASURE_UART_GPIO->PDOR, MEASURE_UART_PIN) = 1;
-#endif
+	#ifdef MEASURE_UART
+		BITBAND_REG(MEASURE_UART_GPIO->PDOR, MEASURE_UART_PIN) = 1;
+	#endif
 
 	uint8_t lenRet = 0 ;
 	while( (lenRet < len) && pop(&recieveBuffer, &rx_data[lenRet]))
 		lenRet ++;
 
-#ifdef MEASURE_UART
-	BITBAND_REG(MEASURE_UART_GPIO->PDOR, MEASURE_UART_PIN) = 0;
-#endif
+	#ifdef MEASURE_UART
+		BITBAND_REG(MEASURE_UART_GPIO->PDOR, MEASURE_UART_PIN) = 0;
+	#endif
 
 	return lenRet;
 }
 
-
+/**
+ * @brief Interrupt handler function. This will check which flag was the one that called the interrupt.
+ */
 __ISR__ UART0_RX_TX_IRQHandler(void)
 {
 	#ifdef MEASURE_UART
@@ -216,12 +237,15 @@ __ISR__ UART0_RX_TX_IRQHandler(void)
 	else{}
 		//err = UART0IRQ_ERR;
 
-#ifdef MEASURE_UART
-	BITBAND_REG(MEASURE_UART_GPIO->PDOR, MEASURE_UART_PIN) = 0;
-#endif
+	#ifdef MEASURE_UART
+		BITBAND_REG(MEASURE_UART_GPIO->PDOR, MEASURE_UART_PIN) = 0;
+	#endif
 
 }
 
+/**
+ * @brief It will send the data that is in the transmission buffer to the UART module. It uses local variables.
+ */
 void transmitData(void)
 {
 	#ifdef MEASURE_UART
@@ -262,6 +286,10 @@ void transmitData(void)
 		BITBAND_REG(MEASURE_UART_GPIO->PDOR, MEASURE_UART_PIN) = 0;
 	#endif
 }
+
+/**
+ * @brief Analogously to the transmitData functio, this will get the recieved in the UART module and stores it in the local reception buffer.
+ */
 void recieveData(void)
 {
 	#ifdef MEASURE_UART
@@ -276,12 +304,12 @@ void recieveData(void)
 		}
 		if(err == NO_ERR)
 		{
-			if((RDRFSTAT(UART0->S1)) && (err == NO_ERR))
+			if((RDRFSTAT(UART0->S1)) && (RXOFStat(UART0->SFIFO)))
 			{
 				loadRegister2Buffer();
 			}else
 			{
-				errFlag = true;
+				err = RXOF_ERR;
 				return;
 			}
 		}
@@ -296,6 +324,9 @@ void recieveData(void)
 	#endif
 }
 
+/**
+ * @brief Actually pulls the next word of data to transmit and writes it to the data register in the UART module.
+ */
 void loadBuffer2Register(void)
 {
 	#ifdef MEASURE_UART
@@ -314,6 +345,9 @@ void loadBuffer2Register(void)
 	#endif
 }
 
+/**
+ * @brief Actually reads the data register in the UART module and pushes the recieved data word to the reception buffer.
+ */
 void loadRegister2Buffer(void)
 {
 	#ifdef MEASURE_UART
