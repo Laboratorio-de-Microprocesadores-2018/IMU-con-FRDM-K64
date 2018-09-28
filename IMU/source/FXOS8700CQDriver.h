@@ -22,8 +22,6 @@
 #include<stdint.h>
 #include<stdbool.h>
 
-
-
 /////////////////////////////////////////////////////////////////////////////////
 //                    Enumerations, structures and typedefs                    //
 /////////////////////////////////////////////////////////////////////////////////
@@ -79,8 +77,9 @@ typedef struct {
 FX_config FX_GetDefaultConfig(void);
 
 /**
- * @brief returns a default configuration for the sensor, which can be used in most cases
- * @return FX_config containing {FX_HYBRID, FX_SCALE2, FX_ODR_200}
+ * @brief Initialises the driver with the given configuration
+ * @param config configuration for the driver containing scale, ODR, and mode
+ * @return true if the initialization was ok, false if not
  * */
 bool FX_Init(FX_config conf);
 

@@ -86,7 +86,7 @@ static void sDataReady(void)
 			break;
 	}
 
-	I2C_ReadData(&i2cConfig);
+	if(I2C_ReadData(&i2cConfig)==I2C_BUS_BUSY){}
 }
 
 
@@ -95,49 +95,49 @@ static void sDataReady(void)
  * */
 static void readData(void)
 {
-	switch(i2cConfig.address_reg)
-	{
-		case WHO_AM_I:
-			//assert(i2cConfig.data[0] != DEF_SLAVE_NAME)
-			break;
-		case OUT_X_MSB:
-			if(i2cConfig.dataSize>=ACC_TOTAL_REGISTERS)
-			{
-				/*			Debug lines
-							  	uint16_t xMSB = (uint16_t)( i2cConfig.data[4] << 8);
-								uint16_t a= ((uint16_t)(i2cConfig.data[5] & 0x00FF));
-								uint16_t xLSB = xMSB | a;
-								accData.z = (xLSB>>2);
-							 	 */
-				int16_t ax=0,ay=0,az=0;
-				/*Transform accelerometer data to a 14bit number in an int16_t */
-				ax=(int16_t)(((i2cConfig.data[0] << 8) | i2cConfig.data[1]))>> 2;
-				ay=(int16_t)(((i2cConfig.data[2] << 8) | i2cConfig.data[3]))>> 2;
-				az=(int16_t)(((i2cConfig.data[4] << 8) | i2cConfig.data[5]))>> 2;
+	if(i2cConfig.fault!=I2C_NO_FAULT)
+	{	switch(i2cConfig.address_reg)
+		{
+			case WHO_AM_I:
+				//assert(i2cConfig.data[0] != DEF_SLAVE_NAME)
+				break;
+			case OUT_X_MSB:
+				if(i2cConfig.dataSize>=ACC_TOTAL_REGISTERS)
+				{
+					/*			Debug lines
+									uint16_t xMSB = (uint16_t)( i2cConfig.data[4] << 8);
+									uint16_t a= ((uint16_t)(i2cConfig.data[5] & 0x00FF));
+									uint16_t xLSB = xMSB | a;
+									accData.z = (xLSB>>2);
+					 */
+					int16_t ax=0,ay=0,az=0;
+					/*Transform accelerometer data to a 14bit number in an int16_t */
+					ax=(int16_t)(((i2cConfig.data[0] << 8) | i2cConfig.data[1]))>> 2;
+					ay=(int16_t)(((i2cConfig.data[2] << 8) | i2cConfig.data[3]))>> 2;
+					az=(int16_t)(((i2cConfig.data[4] << 8) | i2cConfig.data[5]))>> 2;
 
-				/*Make accelerometer units [g]*/
-				accData.x=(float) ax * ACC_SENSITIVITY(currentConf.scale);
-				accData.y=(float) ay * ACC_SENSITIVITY(currentConf.scale);
-				accData.z=(float) az * ACC_SENSITIVITY(currentConf.scale);
-				dataFlag=true;
-			}
-			if(i2cConfig.dataSize==MAG_TOTAL_REGISTERS+ACC_TOTAL_REGISTERS && currentConf.mode==FX_HYBRID)
-			{
-				int16_t	mx=0,my=0,mz=0;
-				/*Transform mag data to an int16_t*/
-				mx=(int16_t)(((i2cConfig.data[6] << 8) | i2cConfig.data[7]));
-				my=(int16_t)(((i2cConfig.data[8] << 8) | i2cConfig.data[9]));
-				mz=(int16_t)(((i2cConfig.data[10] << 8) | i2cConfig.data[11]));
-				/*Make magnetometer units [uT]*/
-				magData.x=(float)mx*MAG_SENSITIVITY;
-				magData.y=(float)my*MAG_SENSITIVITY;
-				magData.z=(float)mz*MAG_SENSITIVITY;
-
-
-			}
-			break;
+					/*Make accelerometer units [g]*/
+					accData.x=(float) ax * ACC_SENSITIVITY(currentConf.scale);
+					accData.y=(float) ay * ACC_SENSITIVITY(currentConf.scale);
+					accData.z=(float) az * ACC_SENSITIVITY(currentConf.scale);
+					dataFlag=true;
+				}
+				if(i2cConfig.dataSize==MAG_TOTAL_REGISTERS+ACC_TOTAL_REGISTERS && currentConf.mode==FX_HYBRID)
+				{
+					int16_t	mx=0,my=0,mz=0;
+					/*Transform mag data to an int16_t*/
+					mx=(int16_t)(((i2cConfig.data[6] << 8) | i2cConfig.data[7]));
+					my=(int16_t)(((i2cConfig.data[8] << 8) | i2cConfig.data[9]));
+					mz=(int16_t)(((i2cConfig.data[10] << 8) | i2cConfig.data[11]));
+					/*Make magnetometer units [uT]*/
+					magData.x=(float)mx*MAG_SENSITIVITY;
+					magData.y=(float)my*MAG_SENSITIVITY;
+					magData.z=(float)mz*MAG_SENSITIVITY;
 
 
+				}
+				break;
+		}
 	}
 }
 
@@ -164,11 +164,13 @@ FX_config FX_GetDefaultConfig(void)
 	return defConf;
 }
 /**
- * @brief returns a default configuration for the sensor, which can be used in most cases
- * @return FX_config containing {FX_HYBRID, FX_SCALE2, FX_ODR_200}
+ * @brief Initialises the driver with the given configuration
+ * @param config configuration for the driver containing scale, ODR, and mode
+ * @return true if the initialization was ok, false if not
  * */
 bool FX_Init(FX_config conf)
 {
+	retVal=true;
 	I2C_SetDefaultConfig(&i2cConfig, DEF_SLAVE_ADDR,I2C_FREQ_48K8,readData);
 
 	i2cConfig.data = dataBuff;
@@ -189,7 +191,7 @@ bool FX_Init(FX_config conf)
 	i2cConfig.data[0]=0;
 
 	if(I2C_Blocking_WriteData(&i2cConfig) != I2C_NO_FAULT)
-		digitalWrite(PIN_LED_RED,0);
+		retVal=false;;
 
 	/** Out data configuration register for scale and no highpass filter*/
 	if(conf.mode!=FX_MAG_ONLY)
@@ -197,7 +199,7 @@ bool FX_Init(FX_config conf)
 		i2cConfig.address_reg=XYZ_DATA_CFG;
 		i2cConfig.data[0]=XYZ_HPF_MASK(0)|XYZ_SCALE_MASK(conf.scale); //i2cConfig.data[0]=0b00000000;
 		if(I2C_Blocking_WriteData(&i2cConfig) != I2C_NO_FAULT)
-			digitalWrite(PIN_LED_RED,0);
+			retVal=false;;
 	}
 
 	/**Enable data ready interrupt in the interrupt enable register*/
@@ -205,7 +207,7 @@ bool FX_Init(FX_config conf)
 	i2cConfig.data[0]=CTRL4_DATA_READY_IE_MASK(1); //i2cConfig.data[0]=0b00000001;
 
 	if(I2C_Blocking_WriteData(&i2cConfig) != I2C_NO_FAULT)
-		digitalWrite(PIN_LED_RED,0);
+		retVal=false;;
 
 	/*Configure interruption signal to be in pin INT2*/
 	i2cConfig.address_reg=CTRL_REG5;
@@ -213,7 +215,7 @@ bool FX_Init(FX_config conf)
 	i2cConfig.data[0]=CTRL5_DATA_READY_PIN_MASK(CTRL5_INT2_INTERRUPT); //i2cConfig.data[0]=0x00;
 
 	if(I2C_Blocking_WriteData(&i2cConfig) != I2C_NO_FAULT)
-		digitalWrite(PIN_LED_RED,0);
+		retVal=false;;
 
 
 
@@ -223,7 +225,7 @@ bool FX_Init(FX_config conf)
 			| MCTRL1_OSR_MASK(MAX_OSR) | MCTRL1_HMS_MASK(conf.mode);//i2cConfig.data[0]&=//i2cConfig.data[0]=0b00011111;
 
 	if(I2C_Blocking_WriteData(&i2cConfig) != I2C_NO_FAULT)
-		digitalWrite(PIN_LED_RED,0);
+		retVal=false;;
 
 	/*Hybrid autoincrement mode configuration to read the 12 bytes in burst*/
 	if(conf.mode==FX_HYBRID)
@@ -232,7 +234,7 @@ bool FX_Init(FX_config conf)
 		/*Enable Hybrid auto-increase mode for burst read*/
 		i2cConfig.data[0]=MCTRL2_AUTOINC_MASK(1);//i2cConfig.data[0]=0b00010000;
 		if(I2C_Blocking_WriteData(&i2cConfig) != I2C_NO_FAULT)
-			digitalWrite(PIN_LED_RED,0);
+			retVal=false;;
 	}
 
 	/*IRQ pin configuration for data ready interrupt*/
@@ -244,7 +246,7 @@ bool FX_Init(FX_config conf)
 	i2cConfig.address_reg=CTRL_REG1;
 	i2cConfig.data[0]= CTRL1_ACTIVE_MASK(1) | CTRL1_LOW_NOISE_MASK(1)| CTRL1_ODR_MASK(conf.ODR);//i2cConfig.data[0]=0b00001101;
 	if(I2C_Blocking_WriteData(&i2cConfig) != I2C_NO_FAULT)
-		digitalWrite(PIN_LED_RED,0);
+		retVal=false;;
 
 	currentConf=conf;
 
