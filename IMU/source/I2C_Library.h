@@ -7,7 +7,7 @@
  */
 
 // Uncomment this define to raise a pin when in a I2C function
-//#define MEASURE_I2C
+#define MEASURE_I2C
 
 #ifdef MEASURE_I2C
 	#define MEASURE_I2C_PORT PORTC

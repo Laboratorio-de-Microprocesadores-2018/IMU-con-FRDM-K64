@@ -16,7 +16,7 @@
 #include "MK64F12.h"
 #include "CircularBuffer.h"
 
-
+#define MEASURE_UART
 #ifdef MEASURE_UART
 	#define MEASURE_UART_PORT PORTC
 	#define MEASURE_UART_GPIO GPIOC

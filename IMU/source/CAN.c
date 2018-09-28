@@ -22,7 +22,7 @@
 #define PIN_CAN0_STB PORTNUM2PIN(PC,1)
 
 // Uncomment this define to raise a pin when in a CAN function
-//#define MEASURE_CAN
+#define MEASURE_CAN
 
 #ifdef MEASURE_CAN
 	#define MEASURE_CAN_PORT PORTC
@@ -82,6 +82,7 @@ void CAN_GetDefaultConfig(CAN_Config * config)
 
 CAN_Status CAN_Init(CAN_Type * base, CAN_Config * config, uint32_t sourceClockHz )
 {
+
 #ifdef MEASURE_CAN
 	MEASURE_CAN_PORT->PCR[MEASURE_CAN_PIN] = PORT_PCR_MUX(1);
 	MEASURE_CAN_GPIO->PDDR |= (1<<MEASURE_CAN_PIN);

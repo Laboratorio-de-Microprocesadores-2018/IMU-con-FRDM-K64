@@ -56,14 +56,6 @@ typedef struct{
 
 }CAN_FIFOConfig;
 
-typedef struct{
-	uint8_t 	preDivider;	// Clock Pre-scaler Division Factor.
-	uint8_t 	rJumpwidth;	// Re-sync Jump Width (in quantas).
-	uint8_t 	phaseSeg1;	// Phase Segment 1 (in quantas).
-	uint8_t 	phaseSeg2;	// Phase Segment 2 (in quantas).
-	uint8_t 	propSeg;	// Propagation Segment (in quantas).
-}CAN_Timing;
-
 
 typedef struct{
 	uint32_t ID;
@@ -124,10 +116,6 @@ void CAN_Enable(CAN_Type * base);
  * @param base CAN peripheral base address..
  */
 void CAN_Disable(CAN_Type * base);
-
-
-
-
 
 
 /**
@@ -195,45 +183,5 @@ CAN_Status CAN_ReadRxMB(CAN_Type * base,uint8_t index, CAN_DataFrame * frame);
  * @return
  */
 CAN_Status CAN_WriteTxMB(CAN_Type * base,uint8_t index, CAN_DataFrame * frame);
-
-/*
- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>CAN_Init
- CAN_Deinit
- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>CAN_GetDefaultConfig
-
- CAN_SetTimingConfig
- CAN_SetRxMbGlobalMask
- CAN_SetRxFifoGlobalMask
- CAN_SetRxIndividualMask
- CAN_SetTxMbConfig
- CAN_SetRxMbConfig
- CAN_SetRxFifoConfig
- CAN_GetStatusFlags
- CAN_ClearStatusFlags
- CAN_GetBusErrCount
- CAN_GetMbStatusFlags
- CAN_ClearMbStatusFlags
-
- CAN_EnableInterrupts
- CAN_DisableInterrupts
- CAN_EnableMbInterrupts
- CAN_DisableMbInterrupts
-
- CAN_Enable
- CAN_WriteTxMb
- CAN_ReadRxMb
- CAN_ReadRxFifo
-
- CAN_TransferSendBlocking
- CAN_TransferReceiveBlocking
- CAN_TransferReceiveFifoBlocking
- CAN_TransferCreateHandle
- CAN_TransferSendNonBlocking
- CAN_TransferReceiveNonBlocking
- CAN_TransferReceiveFifoNonBlocking
- CAN_TransferAbortSend
- CAN_TransferAbortReceive
- CAN_TransferAbortReceiveFifo
- CAN_TransferHandleIRQ*/
 
 #endif /* CAN_H_ */

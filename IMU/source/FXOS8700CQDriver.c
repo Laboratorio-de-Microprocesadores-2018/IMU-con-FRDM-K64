@@ -95,7 +95,7 @@ static void sDataReady(void)
  * */
 static void readData(void)
 {
-	if(i2cConfig.fault!=I2C_NO_FAULT)
+	if(i2cConfig.fault==I2C_NO_FAULT)
 	{	switch(i2cConfig.address_reg)
 		{
 			case WHO_AM_I:
@@ -170,7 +170,8 @@ FX_config FX_GetDefaultConfig(void)
  * */
 bool FX_Init(FX_config conf)
 {
-	retVal=true;
+	bool retVal = true;
+
 	I2C_SetDefaultConfig(&i2cConfig, DEF_SLAVE_ADDR,I2C_FREQ_48K8,readData);
 
 	i2cConfig.data = dataBuff;
@@ -191,7 +192,7 @@ bool FX_Init(FX_config conf)
 	i2cConfig.data[0]=0;
 
 	if(I2C_Blocking_WriteData(&i2cConfig) != I2C_NO_FAULT)
-		retVal=false;;
+		retVal=false;
 
 	/** Out data configuration register for scale and no highpass filter*/
 	if(conf.mode!=FX_MAG_ONLY)
@@ -199,7 +200,7 @@ bool FX_Init(FX_config conf)
 		i2cConfig.address_reg=XYZ_DATA_CFG;
 		i2cConfig.data[0]=XYZ_HPF_MASK(0)|XYZ_SCALE_MASK(conf.scale); //i2cConfig.data[0]=0b00000000;
 		if(I2C_Blocking_WriteData(&i2cConfig) != I2C_NO_FAULT)
-			retVal=false;;
+			retVal=false;
 	}
 
 	/**Enable data ready interrupt in the interrupt enable register*/
@@ -207,7 +208,7 @@ bool FX_Init(FX_config conf)
 	i2cConfig.data[0]=CTRL4_DATA_READY_IE_MASK(1); //i2cConfig.data[0]=0b00000001;
 
 	if(I2C_Blocking_WriteData(&i2cConfig) != I2C_NO_FAULT)
-		retVal=false;;
+		retVal=false;
 
 	/*Configure interruption signal to be in pin INT2*/
 	i2cConfig.address_reg=CTRL_REG5;
@@ -215,7 +216,7 @@ bool FX_Init(FX_config conf)
 	i2cConfig.data[0]=CTRL5_DATA_READY_PIN_MASK(CTRL5_INT2_INTERRUPT); //i2cConfig.data[0]=0x00;
 
 	if(I2C_Blocking_WriteData(&i2cConfig) != I2C_NO_FAULT)
-		retVal=false;;
+		retVal=false;
 
 
 
@@ -234,7 +235,7 @@ bool FX_Init(FX_config conf)
 		/*Enable Hybrid auto-increase mode for burst read*/
 		i2cConfig.data[0]=MCTRL2_AUTOINC_MASK(1);//i2cConfig.data[0]=0b00010000;
 		if(I2C_Blocking_WriteData(&i2cConfig) != I2C_NO_FAULT)
-			retVal=false;;
+			retVal=false;
 	}
 
 	/*IRQ pin configuration for data ready interrupt*/
@@ -250,7 +251,7 @@ bool FX_Init(FX_config conf)
 
 	currentConf=conf;
 
-	return true;//VER DESPUES SI SE PONE ALGO
+	return retVal;
 }
 
 /**

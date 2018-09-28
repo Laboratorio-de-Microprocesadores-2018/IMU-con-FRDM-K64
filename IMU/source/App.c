@@ -1,5 +1,5 @@
 /////////////////////////////////////////////////////////////////////////////////
-//                     XXXXXXXX_GENERIC_XXXXXXXXX                              //
+//                     							                               //
 //          Grupo 3 - Laboratorio de Microprocesadores - ITBA - 2018           //
 //	                                                                           //
 /////////////////////////////////////////////////////////////////////////////////
@@ -17,11 +17,12 @@
 #include "DesktopCommunications.h"
 #include "SysTick.h"
 #include "math.h"
+#include "Assert.h"
 
 /////////////////////////////////////////////////////////////////////////////////
 //                       Constants and macro definitions                       //
 /////////////////////////////////////////////////////////////////////////////////
-#define MEASURE_PERIOD_MS 50 // Time in milliseconds between two measurements
+#define MEASURE_PERIOD_MS 100 // Time in milliseconds between two measurements
 #define TIMEOUT_MS 2000		// Maximum time in milliseconds between to measurements
 #define THRESHOLD 5 		// Threshold in degrees for measurements
 
@@ -34,7 +35,6 @@ typedef struct{
 	int pitch;
 	int yaw;
 }Orientation;
-
 
 /////////////////////////////////////////////////////////////////////////////////
 //                         Global variables definition                         //
@@ -60,12 +60,13 @@ static Orientation computePosition(sData accelerometer,sData magnetometer);
 //                         Global function prototypes                          //
 /////////////////////////////////////////////////////////////////////////////////
 
+
 void App_Init (void)
 {
 
 	// Init accelerometer
 	FX_config accelConfig = FX_GetDefaultConfig();
-	FX_Init(accelConfig);
+	ASSERT(FX_Init(accelConfig)==true);
 
 	// Init communications with other boards throug CAN bus
 	otherBoardCommunicationsInit();
@@ -99,50 +100,51 @@ void App_Run (void)
 
 	}*/
 
+	if(receiveOtherBoardsMeasurement(&m) == true)
+		sendMeasurement2Desktop(m.boardID-BASE_ID,m.angleID,m.angleVal);
+
 	uint64_t now = millis();
 
 	if((now-lastMeasureTime)>MEASURE_PERIOD_MS)
 	{
-		if(FX_GetData(&accelerometer,&magnetometer)==true)
+
+		if(FX_newData())
 		{
+			FX_GetData(&accelerometer,&magnetometer);
+
 			Orientation currPos = computePosition(accelerometer,magnetometer);
 
-			if(fabs(currPos.roll-lastPos.roll)>=THRESHOLD || (now-lastRollTime) > TIMEOUT_MS)
+			if((abs(currPos.roll-lastPos.roll)>=THRESHOLD) || ((now-lastRollTime) > TIMEOUT_MS))
 			{
 				m.boardID = MY_BOARD_ID;
 				m.angleID = 'R';
 				m.angleVal = currPos.roll;
 				sendMeasurement2Desktop(m.boardID-BASE_ID,m.angleID,m.angleVal);
-				sendMeasurement2OtherBoards(m); // Si habilito self-receive en CAN se manda solo a la compu mas abajo
-
+				sendMeasurement2OtherBoards(m);
 				lastRollTime = now;
 			}
 
-			if(fabs(currPos.pitch-lastPos.pitch)>=THRESHOLD || (now-lastPitchTime) > TIMEOUT_MS)
+			if((abs(currPos.pitch-lastPos.pitch)>=THRESHOLD) || ((now-lastPitchTime) > TIMEOUT_MS))
 			{
 				m.boardID = MY_BOARD_ID;
 				m.angleID = 'C';
 				m.angleVal = currPos.pitch;
 				sendMeasurement2Desktop(m.boardID-BASE_ID,m.angleID,m.angleVal);
 				sendMeasurement2OtherBoards(m);
-
 				lastPitchTime = now;
 			}
 			lastMeasureTime = now;
+			lastPos = currPos;
 		}
 	}
-
-
-	if(receiveOtherBoardsMeasurement(&m) == true)
-		sendMeasurement2Desktop(m.boardID-BASE_ID,m.angleID,m.angleVal);
 }
 
 Orientation computePosition(sData a,sData m)
 {
 	Orientation o;
 	float norm = sqrt(a.x*a.x+a.y*a.y+a.z*a.z);
-	a.x/=norm;
 	a.y/=norm;
+	a.x/=norm;
 	a.z/=norm;
 	o.pitch=(int)((180/M_PI)*atan(a.x/sqrt(a.y*a.y+a.z*a.z)));
 	o.roll=(int)((180/M_PI)*atan2(a.y,sqrt(a.x*a.x+a.z*a.z)));
