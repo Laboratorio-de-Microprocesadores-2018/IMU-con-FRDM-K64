@@ -21,7 +21,7 @@
 #define I2C_GET_IICIF			((I2C0->S & I2C_S_IICIF_MASK)>>I2C_S_IICIF_SHIFT)
 #define I2C_SET_MASTER			(I2C0->C1 |= 1<<I2C_C1_MST_SHIFT)
 
-#define I2C_TIMEOUT_COUNT 1000000				// Number of "while" cycles to wait if trying to send data and the bus is busy
+#define I2C_TIMEOUT_COUNT 1000				// Number of "while" cycles to wait if trying to send data and the bus is busy
 
 /**
  * @brief Used for initiation of the transmission
@@ -120,10 +120,8 @@ I2C_FAULT_T I2C_WriteData(I2C_CONTROL_T * i2cInput)
 	i2cControl = i2cInput;
 
 	I2C_FAULT_T retVal = I2C_NO_FAULT;
-	unsigned busTimeoutCount = I2C_TIMEOUT_COUNT;
-	while( (I2C_Write() == false) && busTimeoutCount > 0)	{ busTimeoutCount--; }
-	if(busTimeoutCount == 0)
-		retVal = I2C_BUS_FAULT;
+	if(i2cInput->flag == I2C_FLAG_TRANSMISSION_PROGRESS || I2C_Write() == false)
+		retVal = I2C_BUS_BUSY;
 
 #ifdef MEASURE_I2C
 	BITBAND_REG(MEASURE_I2C_GPIO->PDOR, MEASURE_I2C_PIN) = 0;
@@ -156,10 +154,8 @@ I2C_FAULT_T I2C_ReadData(I2C_CONTROL_T * i2cInput)
 	i2cControl = i2cInput;
 
 	I2C_FAULT_T retVal = I2C_NO_FAULT;
-	unsigned busTimeoutCount = I2C_TIMEOUT_COUNT;
-	while( (I2C_Read() == false) && busTimeoutCount > 0)	{ busTimeoutCount--; }
-	if(busTimeoutCount == 0)
-		retVal = I2C_BUS_FAULT;
+	if(i2cInput->flag == I2C_FLAG_TRANSMISSION_PROGRESS || I2C_Read() == false)
+		retVal = I2C_BUS_BUSY;
 
 #ifdef MEASURE_I2C
 	BITBAND_REG(MEASURE_I2C_GPIO->PDOR, MEASURE_I2C_PIN) = 0;
@@ -220,7 +216,7 @@ static bool I2C_Read()
 #endif
 
 	I2C_FAULT_T retVal = true;
-	//Check if the bus is not busy
+	//Check if the bus is busy
 	if(I2C_CHECK_BUSY)
 		retVal = false;
 	else
@@ -248,7 +244,7 @@ I2C_FAULT_T I2C_Block_RnW(I2C_CONTROL_T * i2cInput, bool readNwrite)
 #endif
 
 	I2C_FAULT_T retVal = I2C_NO_FAULT;
-	unsigned busTimeoutCount = I2C_TIMEOUT_COUNT;
+	unsigned busTimeoutCount = I2C_TIMEOUT_COUNT;	// Use timeout for blocking communications
 
 	if(readNwrite == 0)
 		while( (I2C_Write() == false) && busTimeoutCount > 0)	{ busTimeoutCount--; }
@@ -256,7 +252,7 @@ I2C_FAULT_T I2C_Block_RnW(I2C_CONTROL_T * i2cInput, bool readNwrite)
 		while( (I2C_Read() == false) && busTimeoutCount > 0)	{ busTimeoutCount--; }
 
 	if(busTimeoutCount == 0)
-		retVal = I2C_BUS_FAULT;
+		retVal = I2C_BUS_BUSY;
 	else
 	{
 		while(i2cControl->flag == I2C_FLAG_TRANSMISSION_PROGRESS && i2cControl->fault == I2C_NO_FAULT)
@@ -265,7 +261,6 @@ I2C_FAULT_T I2C_Block_RnW(I2C_CONTROL_T * i2cInput, bool readNwrite)
 			I2C_isrCallback();
 		}
 		while(I2C_CHECK_BUSY);		// wait until the bus is free again before exit
-		retVal = i2cControl->fault;
 	}
 
 #ifdef MEASURE_I2C
@@ -296,10 +291,8 @@ void I2C_isrCallback()
 						I2C_DATA = i2cControl->address_reg;	// write register address
 						i2cControl->state = I2C_STATE_WRITE_DATA;
 					}
-					else	// Slave did not respond (NACK)
-					{
-						terminateTransaction(I2C_SLAVE_NACK);
-					}
+					else	// Slave did not respond (NACK) after address was sent
+						terminateTransaction(I2C_SLAVE_ABSENT);
 					break;
 				}
 				case I2C_STATE_WRITE_DATA:
@@ -313,7 +306,7 @@ void I2C_isrCallback()
 							I2C_DATA = i2cControl->data[i2cControl->dataIndex++];	// write next byte
 						}
 						else	// Slave did not respond (NACK)
-							terminateTransaction(I2C_SLAVE_NACK);
+							terminateTransaction(I2C_TRANSMISSION_INCOMPLETE);
 					}
 					break;
 				}
@@ -328,9 +321,14 @@ void I2C_isrCallback()
 			{
 				case I2C_STATE_WRITE_REG_ADDRESS:
 				{
-					// Write register address and switch to receive mode
-					I2C_DATA = i2cControl->address_reg;
-					i2cControl->state = I2C_STATE_RSTART;
+					if(I2C_CHECK_RX_ACK)	// Received an ACK
+					{
+						// Write register address and switch to receive mode
+						I2C_DATA = i2cControl->address_reg;
+						i2cControl->state = I2C_STATE_RSTART;
+					}
+					else
+						terminateTransaction(I2C_SLAVE_ABSENT);
 					break;
 				}
 				case I2C_STATE_RSTART:
