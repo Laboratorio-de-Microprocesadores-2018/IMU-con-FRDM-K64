@@ -67,13 +67,14 @@ void App_Init (void)
 	FX_config accelConfig = FX_GetDefaultConfig();
 	FX_Init(accelConfig);
 
-
 	// Init communications with other boards throug CAN bus
 	otherBoardCommunicationsInit();
 
-
 	// Init communication with desktop PC through UART
 	desktopCommunicationsInit();
+
+	// Systick for millis() function
+	sysTickInit();
 
 }
 
@@ -111,8 +112,9 @@ void App_Run (void)
 				m.boardID = MY_BOARD_ID;
 				m.angleID = 'R';
 				m.angleVal = currPos.roll;
-				//sendMeasurement2OtherBoards(m); // Si habilito self-receive en CAN se manda solo a la compu mas abajo
 				sendMeasurement2Desktop(m.boardID-BASE_ID,m.angleID,m.angleVal);
+				sendMeasurement2OtherBoards(m); // Si habilito self-receive en CAN se manda solo a la compu mas abajo
+
 				lastRollTime = now;
 			}
 
@@ -121,8 +123,9 @@ void App_Run (void)
 				m.boardID = MY_BOARD_ID;
 				m.angleID = 'C';
 				m.angleVal = currPos.pitch;
-				//sendMeasurement2OtherBoards(m);
 				sendMeasurement2Desktop(m.boardID-BASE_ID,m.angleID,m.angleVal);
+				sendMeasurement2OtherBoards(m);
+
 				lastPitchTime = now;
 			}
 			lastMeasureTime = now;
@@ -130,8 +133,8 @@ void App_Run (void)
 	}
 
 
-//	if(receiveOtherBoardsMeasurement(&m) == true)
-//		sendMeasurement2Desktop(m.boardID,m.angleID,m.angleVal);
+	if(receiveOtherBoardsMeasurement(&m) == true)
+		sendMeasurement2Desktop(m.boardID-BASE_ID,m.angleID,m.angleVal);
 }
 
 Orientation computePosition(sData a,sData m)

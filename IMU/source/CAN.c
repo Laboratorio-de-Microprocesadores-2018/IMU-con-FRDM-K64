@@ -295,17 +295,15 @@ CAN_Status CAN_ReadRxMB(CAN_Type * base,uint8_t index, CAN_DataFrame * frame)
 		frame->ID = (base->MB[index].ID & CAN_ID_STD_MASK)>> CAN_ID_STD_SHIFT;
 		frame->length = (base->MB[index].CS & CAN_CS_DLC_MASK) >> CAN_CS_DLC_SHIFT;
 
-		uint32_t W0 = base->MB[index].WORD0;
-		frame->dataWord0 =  ((W0 & CAN_WORD0_DATA_BYTE_0_MASK)>>24)|
-							((W0 & CAN_WORD0_DATA_BYTE_1_MASK)>>8)|
-							((W0 & CAN_WORD0_DATA_BYTE_2_MASK)<<8)|
-							((W0 & CAN_WORD0_DATA_BYTE_3_MASK)<<24);
+		frame->dataWord0 =  ((base->MB[index].WORD0 & CAN_WORD0_DATA_BYTE_0_MASK)>>24)|
+							((base->MB[index].WORD0 & CAN_WORD0_DATA_BYTE_1_MASK)>>8)|
+							((base->MB[index].WORD0 & CAN_WORD0_DATA_BYTE_2_MASK)<<8)|
+							((base->MB[index].WORD0 & CAN_WORD0_DATA_BYTE_3_MASK)<<24);
 
-		uint32_t W1 = base->MB[index].WORD1;
-		frame->dataWord1 =  ((W1 & CAN_WORD1_DATA_BYTE_4_MASK)>>24)|
-							((W1 & CAN_WORD1_DATA_BYTE_5_MASK)>>8)|
-							((W1 & CAN_WORD1_DATA_BYTE_6_MASK)<<8)|
-							((W1 & CAN_WORD1_DATA_BYTE_7_MASK)<<24);
+		frame->dataWord1 =  ((base->MB[index].WORD1 & CAN_WORD1_DATA_BYTE_4_MASK)>>24)|
+							((base->MB[index].WORD1 & CAN_WORD1_DATA_BYTE_5_MASK)>>8)|
+							((base->MB[index].WORD1 & CAN_WORD1_DATA_BYTE_6_MASK)<<8)|
+							((base->MB[index].WORD1 & CAN_WORD1_DATA_BYTE_7_MASK)<<24);
 		/// Acknowledge the proper flag at IFLAG registers.
 		base->IFLAG1 |= (1<<index); // W1C
 
@@ -347,14 +345,14 @@ CAN_Status  CAN_WriteTxMB(CAN_Type * base,uint8_t index, CAN_DataFrame * frame)
 		base->MB[index].ID = CAN_ID_STD(frame->ID);
 
 		/// Write the data bytes in order using macros.
-		base->MB[index].WORD0 = CAN_WORD0_DATA_BYTE_0(frame->dataWord0) |
-		                    	CAN_WORD0_DATA_BYTE_1(frame->dataWord0) |
-		                    	CAN_WORD0_DATA_BYTE_2(frame->dataWord0) |
-		                    	CAN_WORD0_DATA_BYTE_3(frame->dataWord0);
-		base->MB[index].WORD1 = CAN_WORD1_DATA_BYTE_4(frame->dataWord1) |
-		                        CAN_WORD1_DATA_BYTE_5(frame->dataWord1) |
-		                    	CAN_WORD1_DATA_BYTE_6(frame->dataWord1) |
-		                    	CAN_WORD1_DATA_BYTE_7(frame->dataWord1);
+		base->MB[index].WORD0 = CAN_WORD0_DATA_BYTE_0(frame->dataByte0) |
+		                    	CAN_WORD0_DATA_BYTE_1(frame->dataByte1) |
+		                    	CAN_WORD0_DATA_BYTE_2(frame->dataByte2) |
+		                    	CAN_WORD0_DATA_BYTE_3(frame->dataByte3);
+		base->MB[index].WORD1 = CAN_WORD1_DATA_BYTE_4(frame->dataByte4) |
+		                        CAN_WORD1_DATA_BYTE_5(frame->dataByte5) |
+		                    	CAN_WORD1_DATA_BYTE_6(frame->dataByte6) |
+		                    	CAN_WORD1_DATA_BYTE_7(frame->dataByte7);
 
 		/// Write the DLC and CODE fields of the Control and Status word to activate the MB.
 		base->MB[index].CS = CAN_CS_CODE(TX_DATA) | CAN_CS_DLC(frame->length) | CAN_CS_SRR(1) | CAN_CS_IDE(0);

@@ -1,10 +1,10 @@
 #include "CANCommunications.h"
 #include "CircularBuffer.h"
 #include "CAN.h"
-#include "SysTick.h"
+//#include "SysTick.h"
 #include "stdlib.h"
 #include "stdio.h"
-
+#include "Assert.h"
 
 NEW_CIRCULAR_BUFFER(RxBuf,10,sizeof(CAN_DataFrame)); ///SI SE USA LA FIFO DE CAN NO HARIA FALTA UNA FIFO POR SOFT??
 
@@ -14,19 +14,19 @@ NEW_CIRCULAR_BUFFER(RxBuf,10,sizeof(CAN_DataFrame)); ///SI SE USA LA FIFO DE CAN
 
 
 static void receiveCallback(CAN_DataFrame frame,CAN_Status status, void* buffer);
-
+/*
 void autoSend()
 {
 	CAN_DataFrame frame;
 
-	/* Prepares the transmit frame for sending. */
+	// Prepares the transmit frame for sending.
 	frame.ID     = MY_BOARD_ID;
 	frame.length = snprintf((char*)frame.data, sizeof(frame.data), "c%d", +184);
 
-	/* Writes a transmit message buffer to send a CAN Message. */
+	// Writes a transmit message buffer to send a CAN Message.
 	CAN_WriteTxMB(CAN0, 0, &frame);
 }
-
+*/
 void otherBoardCommunicationsInit()
 {
 	CAN_Config config;
@@ -34,6 +34,7 @@ void otherBoardCommunicationsInit()
 	config.enableLoopBack = false;
 	config.maxMbNum = 2;
 	config.enableSelfReception = true;
+	config.enableLoopBack = true;
 
 	if(CAN_Init(CAN0,&config,50000000)!=CAN_SUCCESS)
 		while(1);
@@ -42,8 +43,8 @@ void otherBoardCommunicationsInit()
 	CAN_SetRxIndividualMask(CAN0,RX_MB_INDEX,MASK_ID);
 	CAN_EnableMbInterrupts(CAN0, RX_MB_INDEX, &receiveCallback);
 
-	sysTickInit();
-	sysTickAddCallback(&autoSend,3);
+	//sysTickInit();
+	//sysTickAddCallback(&autoSend,3);
 }
 
 void sendMeasurement2OtherBoards(Measurement m)
@@ -51,11 +52,13 @@ void sendMeasurement2OtherBoards(Measurement m)
 	CAN_DataFrame frame;
 
 	/* Prepares the transmit frame for sending. */
-	frame.ID     = MY_BOARD_ID;
-	frame.length = snprintf((char*)frame.data, sizeof(frame.data), "%d", m.angleVal);
+	frame.ID     = MY_BOARD_ID+2;
+	frame.length = snprintf((char*)frame.data, sizeof(frame.data), "%c%d", m.angleID,m.angleVal);
 
 	/* Writes a transmit message buffer to send a CAN Message. */
-	CAN_WriteTxMB(CAN0, TX_MB_INDEX, &frame);
+	CAN_Status s = CAN_WriteTxMB(CAN0, TX_MB_INDEX, &frame);
+
+	ASSERT(s==CAN_SUCCESS);
 
 }
 
