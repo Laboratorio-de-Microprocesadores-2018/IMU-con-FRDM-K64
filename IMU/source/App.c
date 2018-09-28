@@ -21,7 +21,7 @@
 /////////////////////////////////////////////////////////////////////////////////
 //                       Constants and macro definitions                       //
 /////////////////////////////////////////////////////////////////////////////////
-#define MEASURE_PERIOD_MS 100 // Time in milliseconds between two measurements
+#define MEASURE_PERIOD_MS 50 // Time in milliseconds between two measurements
 #define TIMEOUT_MS 2000		// Maximum time in milliseconds between to measurements
 #define THRESHOLD 5 		// Threshold in degrees for measurements
 
@@ -62,20 +62,42 @@ static Orientation computePosition(sData accelerometer,sData magnetometer);
 
 void App_Init (void)
 {
+
 	// Init accelerometer
 	FX_config accelConfig = FX_GetDefaultConfig();
 	FX_Init(accelConfig);
 
+
 	// Init communications with other boards throug CAN bus
 	otherBoardCommunicationsInit();
 
+
 	// Init communication with desktop PC through UART
 	desktopCommunicationsInit();
+
 }
 
 
 void App_Run (void)
 {
+	/*uint32_t counter=0;
+
+	sData acc,mag;
+	if(FX_newData())
+	{
+		FX_GetData(&acc,&mag);
+		if(a<250)
+		{
+			buffer[a]=acc;
+			a++;
+		}
+		else
+		{
+			a=0;
+		}
+
+	}*/
+
 	uint64_t now = millis();
 
 	if((now-lastMeasureTime)>MEASURE_PERIOD_MS)
@@ -84,37 +106,43 @@ void App_Run (void)
 		{
 			Orientation currPos = computePosition(accelerometer,magnetometer);
 
-			if(fabs(currPos.roll-lastPos.roll)>THRESHOLD || (now-lastRollTime) > TIMEOUT_MS)
+			if(fabs(currPos.roll-lastPos.roll)>=THRESHOLD || (now-lastRollTime) > TIMEOUT_MS)
 			{
 				m.boardID = MY_BOARD_ID;
 				m.angleID = 'R';
 				m.angleVal = currPos.roll;
-				sendMeasurement2OtherBoards(m); // Si habilito self-receive en CAN se manda solo a la compu mas abajo
+				//sendMeasurement2OtherBoards(m); // Si habilito self-receive en CAN se manda solo a la compu mas abajo
+				sendMeasurement2Desktop(m.boardID-BASE_ID,m.angleID,m.angleVal);
 				lastRollTime = now;
 			}
 
-			if(fabs(currPos.pitch-lastPos.pitch)>THRESHOLD || (now-lastPitchTime) > TIMEOUT_MS)
+			if(fabs(currPos.pitch-lastPos.pitch)>=THRESHOLD || (now-lastPitchTime) > TIMEOUT_MS)
 			{
 				m.boardID = MY_BOARD_ID;
-				m.angleID = 'P';
-				m.angleVal = currPos.roll;
-				sendMeasurement2OtherBoards(m);
+				m.angleID = 'C';
+				m.angleVal = currPos.pitch;
+				//sendMeasurement2OtherBoards(m);
+				sendMeasurement2Desktop(m.boardID-BASE_ID,m.angleID,m.angleVal);
 				lastPitchTime = now;
 			}
 			lastMeasureTime = now;
 		}
 	}
 
-	if(receiveOtherBoardsMeasurement(&m) == true);
-		sendMeasurement2Desktop(m.boardID,m.angleID,m.angleVal);
+
+//	if(receiveOtherBoardsMeasurement(&m) == true)
+//		sendMeasurement2Desktop(m.boardID,m.angleID,m.angleVal);
 }
 
-Orientation computePosition(sData accelerometer,sData magnetometer)
+Orientation computePosition(sData a,sData m)
 {
 	Orientation o;
-	// CUENTAS
-	o.pitch=0;
-	o.roll=0;
+	float norm = sqrt(a.x*a.x+a.y*a.y+a.z*a.z);
+	a.x/=norm;
+	a.y/=norm;
+	a.z/=norm;
+	o.pitch=(int)((180/M_PI)*atan(a.x/sqrt(a.y*a.y+a.z*a.z)));
+	o.roll=(int)((180/M_PI)*atan2(a.y,sqrt(a.x*a.x+a.z*a.z)));
 	o.yaw=0;
 	return o;
 }

@@ -17,7 +17,7 @@
 
 #define BASE_ID 0b00100000000
 #define MASK_ID 0b11111110000
-#define MY_BOARD_ID 0x109
+#define MY_BOARD_ID (BASE_ID + 3)
 
 
 #include "stdbool.h"
