@@ -1,5 +1,5 @@
 /////////////////////////////////////////////////////////////////////////////////
-//                       Intertial Motion Unit (IMU)                           //
+//                    	   TP2 -  Comunicaciones Serie                         //
 //          Grupo 3 - Laboratorio de Microprocesadores - ITBA - 2018           //
 //	                                                                           //
 /////////////////////////////////////////////////////////////////////////////////
@@ -16,8 +16,8 @@
 #include "stdint.h"
 /**
  * The number of bits used in UART communication can be optimized, packing
- * the information "back to back" in stead of simply sending the varaibles,
- * or senging ASCII values.
+ * the information "back to back" instead of simply sending the variables,
+ * or sending ASCII values.
  *
  * The number of bits needed are:
  *
@@ -49,7 +49,7 @@
  *	int16_t angleVal_received = UNPACK_ANGLE_VAL(b0, b1);
  *
  */
-// Number of bytes sent per packet
+
 #define PACKET_SIZE (3)
 
 #define PACKET_TERMINATOR ('\n')
@@ -72,16 +72,13 @@
 #define UNPACK_BOARD_ID(b0,b1) (uint8_t)((b0>>BOARD_ID_B0_SHIFT)&BOARD_ID_B0_MASK)
 #define UNPACK_ANGLE_ID(b0,b1) (uint8_t)((b0>>ANGLE_ID_B0_SHIFT)&ANGLE_ID_B0_MASK)
 #define UNPACK_ANGLE_VAL(b0,b1) (int16_t)( (((int16_t)((int8_t)(b0<<6)))<<1) | ((((int16_t)b1)>>ANGLE_VAL_B1_SHIFT)&ANGLE_VAL_B1_MASK))
-// The last macro first shifts 5, then casts to int16_t, and then shifts2.
+// The last macro first shifts 6, then casts to int16_t, and then shifts 1.
 // This in order to extend the sign of the number!!!
-
-// La joda es que estas macros la use la funcion que manda por UART a la PC
-// sendMeasurement2Desktop(uint16_t ID, uint8_t angleID, int16_t angleVal);
 
 typedef struct
 {
 	uint16_t boardID;
-	uint8_t angleID; 	///	ID representing roll (rolido 'R') o pitch (cabeceo 'C')
+	uint8_t angleID;
 	int16_t angleVal;
 }Measurement;
 

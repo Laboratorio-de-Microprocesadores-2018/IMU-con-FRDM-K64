@@ -24,7 +24,7 @@ void autoSend()
 	frame.length = snprintf((char*)frame.data, sizeof(frame.data), "c%d", +184);
 
 	// Writes a transmit message buffer to send a CAN Message.
-	CAN_WriteTxMB(CAN0, 0, &frame);
+	CAN_WriteTxMB( 0, &frame);
 }
 */
 void otherBoardCommunicationsInit()
@@ -36,22 +36,22 @@ void otherBoardCommunicationsInit()
 	config.enableSelfReception = false;
 	config.enableLoopBack = false;
 
-	if(CAN_Init(CAN0,&config,50000000)!=CAN_SUCCESS)
+	if(CAN_Init(&config,50000000)!=CAN_SUCCESS)
 		while(1);
 
-	CAN_ConfigureRxMB(CAN0,RX_MB_INDEX,BASE_ID);
-	CAN_SetRxIndividualMask(CAN0,RX_MB_INDEX,MASK_ID);
+	CAN_ConfigureRxMB(RX_MB_INDEX,BASE_ID);
+	CAN_SetRxIndividualMask(RX_MB_INDEX,MASK_ID);
 
-	CAN_ConfigureRxMB(CAN0,RX_MB_INDEX+1,BASE_ID);
-	CAN_SetRxIndividualMask(CAN0,RX_MB_INDEX+1,MASK_ID);
+	CAN_ConfigureRxMB(RX_MB_INDEX+1,BASE_ID);
+	CAN_SetRxIndividualMask(RX_MB_INDEX+1,MASK_ID);
 
-	CAN_ConfigureRxMB(CAN0,RX_MB_INDEX+2,BASE_ID);
-	CAN_SetRxIndividualMask(CAN0,RX_MB_INDEX+2,MASK_ID);
+	CAN_ConfigureRxMB(RX_MB_INDEX+2,BASE_ID);
+	CAN_SetRxIndividualMask(RX_MB_INDEX+2,MASK_ID);
 
-	CAN_EnableMbInterrupts(CAN0, RX_MB_INDEX, &receiveCallback);
-	CAN_EnableMbInterrupts(CAN0, RX_MB_INDEX+1, &receiveCallback);
+	CAN_EnableMbInterrupts( RX_MB_INDEX, &receiveCallback);
+	CAN_EnableMbInterrupts( RX_MB_INDEX+1, &receiveCallback);
 
-	CAN_EnableMbInterrupts(CAN0, RX_MB_INDEX+2, &receiveCallback);
+	CAN_EnableMbInterrupts( RX_MB_INDEX+2, &receiveCallback);
 
 	//sysTickInit();
 	//sysTickAddCallback(&autoSend,3);
@@ -66,7 +66,7 @@ void sendMeasurement2OtherBoards(Measurement m)
 	frame.length = snprintf((char*)frame.data, sizeof(frame.data), "%c%d", m.angleID,m.angleVal);
 
 	/* Writes a transmit message buffer to send a CAN Message. */
-	CAN_Status s = CAN_WriteTxMB(CAN0, TX_MB_INDEX, &frame);
+	CAN_Status s = CAN_WriteTxMB( TX_MB_INDEX, &frame);
 
 	ASSERT(s==CAN_SUCCESS);
 

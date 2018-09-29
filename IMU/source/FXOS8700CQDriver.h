@@ -1,5 +1,5 @@
 /////////////////////////////////////////////////////////////////////////////////
-//                         														//
+//                    	   TP2 -  Comunicaciones Serie                         //
 //          Grupo 3 - Laboratorio de Microprocesadores - ITBA - 2018           //
 //	                                                                           //
 /////////////////////////////////////////////////////////////////////////////////
@@ -124,8 +124,6 @@ bool FX_GetMagData(sData *mag);
  * @return true if new data was collected, false if not
  * */
 bool FX_newData();
-
-
 
 
 #endif /* FXOS8700CQDriver_H_*/

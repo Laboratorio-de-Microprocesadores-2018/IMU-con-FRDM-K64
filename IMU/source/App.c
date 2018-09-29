@@ -1,5 +1,5 @@
 /////////////////////////////////////////////////////////////////////////////////
-//                     							                               //
+//                    	   TP2 -  Comunicaciones Serie                         //
 //          Grupo 3 - Laboratorio de Microprocesadores - ITBA - 2018           //
 //	                                                                           //
 /////////////////////////////////////////////////////////////////////////////////
@@ -82,23 +82,6 @@ void App_Init (void)
 
 void App_Run (void)
 {
-	/*uint32_t counter=0;
-
-	sData acc,mag;
-	if(FX_newData())
-	{
-		FX_GetData(&acc,&mag);
-		if(a<250)
-		{
-			buffer[a]=acc;
-			a++;
-		}
-		else
-		{
-			a=0;
-		}
-
-	}*/
 
 	if(receiveOtherBoardsMeasurement(&m) == true)
 		sendMeasurement2Desktop(m.boardID-BASE_ID,m.angleID,m.angleVal);
@@ -114,7 +97,7 @@ void App_Run (void)
 
 			Orientation currPos = computePosition(accelerometer,magnetometer);
 
-			if((abs(currPos.roll-lastPos.roll)>=THRESHOLD) || ((now-lastRollTime) > TIMEOUT_MS))
+			if((fabs(currPos.roll-lastPos.roll)>=THRESHOLD) || ((now-lastRollTime) > TIMEOUT_MS))
 			{
 				m.boardID = MY_BOARD_ID;
 				m.angleID = 'R';
@@ -124,7 +107,7 @@ void App_Run (void)
 				lastRollTime = now;
 			}
 
-			if((abs(currPos.pitch-lastPos.pitch)>=THRESHOLD) || ((now-lastPitchTime) > TIMEOUT_MS))
+			if((fabs(currPos.pitch-lastPos.pitch)>=THRESHOLD) || ((now-lastPitchTime) > TIMEOUT_MS))
 			{
 				m.boardID = MY_BOARD_ID;
 				m.angleID = 'C';
@@ -146,7 +129,7 @@ Orientation computePosition(sData a,sData m)
 	a.y/=norm;
 	a.x/=norm;
 	a.z/=norm;
-	o.pitch=(int)((180/M_PI)*atan(a.x/sqrt(a.y*a.y+a.z*a.z)));
+	o.pitch=(int)((180/M_PI)*atan2(a.x,sqrt(a.y*a.y+a.z*a.z)));
 	o.roll=(int)((180/M_PI)*atan2(a.y,sqrt(a.x*a.x+a.z*a.z)));
 	o.yaw=0;
 	return o;

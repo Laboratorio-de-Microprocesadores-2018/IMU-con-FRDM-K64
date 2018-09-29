@@ -1,5 +1,5 @@
 /////////////////////////////////////////////////////////////////////////////////
-//                       Intertial Motion Unit (IMU)                           //
+//                    	   TP2 -  Comunicaciones Serie                         //
 //          Grupo 3 - Laboratorio de Microprocesadores - ITBA - 2018           //
 //	                                                                           //
 /////////////////////////////////////////////////////////////////////////////////
@@ -21,22 +21,41 @@
 #include "stdint.h"
 #include "MK64F12.h"
 
+
+// Uncomment this define to raise a pin when in a CAN function
+//#define MEASURE_CAN
+#ifdef MEASURE_CAN
+	#define MEASURE_CAN_PORT PORTC
+	#define MEASURE_CAN_GPIO GPIOC
+	#define MEASURE_CAN_PIN	8
+#endif
+
 /////////////////////////////////////////////////////////////////////////////////
 //                    Enumerations, structures and typedefs                    //
 /////////////////////////////////////////////////////////////////////////////////
 
-typedef enum {CAN_SUCCESS,CAN_FAILED,CAN_ERROR,CAN_NON_STD_BAUD,CAN_RX_BUSY,CAN_RX_OVERFLOW}CAN_Status;
+typedef enum {	CAN_SUCCESS,
+				CAN_FAILED,
+				CAN_ERROR,
+				CAN_NON_STD_BAUD,
+				CAN_RX_BUSY,
+				CAN_RX_OVERFLOW
+}CAN_Status;
 
-typedef enum {CAN_OSC_CLOCK,CAN_PERI_CLOCK}CAN_ClockSource;
+typedef enum {	CAN_OSC_CLOCK,
+				CAN_PERI_CLOCK
+}CAN_ClockSource;
 
-typedef enum {CAN_SINGLE_SAMPLE,CAN_TRIPLE_SAMPLE}CAN_SamplingMode;
+typedef enum {	CAN_SINGLE_SAMPLE,
+				CAN_TRIPLE_SAMPLE
+}CAN_SamplingMode;
 
 typedef enum {
-  CAN_BUS_OFF_INTERRUPT = CAN_CTRL1_BOFFMSK_MASK,
-  CAN_EROR_INTERRUPT = CAN_CTRL1_ERRMSK_MASK,
-  CAN_RX_WARNING_INTERRUPT = CAN_CTRL1_RWRNMSK_MASK,
-  CAN_TX_WARNING_INTERRUPT = CAN_CTRL1_TWRNMSK_MASK,
-  CAN_WAKE_UP_INTERRUPT = CAN_MCR_WAKMSK_MASK
+				CAN_BUS_OFF_INTERRUPT = CAN_CTRL1_BOFFMSK_MASK,
+				CAN_EROR_INTERRUPT = CAN_CTRL1_ERRMSK_MASK,
+				CAN_RX_WARNING_INTERRUPT = CAN_CTRL1_RWRNMSK_MASK,
+				CAN_TX_WARNING_INTERRUPT = CAN_CTRL1_TWRNMSK_MASK,
+				CAN_WAKE_UP_INTERRUPT = CAN_MCR_WAKMSK_MASK
 } CAN__Interrupt;
 
 
@@ -97,25 +116,25 @@ void CAN_GetDefaultConfig(CAN_Config * config);
  * @param config Pointer to a struct containing module configuration.
  * @param clockHz Protocol Engine clock source frequency in Hz.
  */
-CAN_Status CAN_Init(CAN_Type * base, CAN_Config * config, uint32_t sourceClockHz );
+CAN_Status CAN_Init(CAN_Config * config, uint32_t sourceClockHz );
 
 /*
  * @brief Disable CAN module clock and reset all registers.
  * @param base CAN peripheral base address.
  */
-void CAN_Deinit(CAN_Type * base);
+void CAN_Deinit();
 
 /**
  * @brief Enable the CAN module.
  * @param base CAN peripheral base address.
  */
-void CAN_Enable(CAN_Type * base);
+void CAN_Enable();
 
 /**
  * @brief Disable the CAN module.
  * @param base CAN peripheral base address..
  */
-void CAN_Disable(CAN_Type * base);
+void CAN_Disable();
 
 
 /**
@@ -124,7 +143,7 @@ void CAN_Disable(CAN_Type * base);
  * @param index Number of message buffer.
  * @param config Pointer to struct containing MB Rx configuration
  */
-void  CAN_ConfigureRxMB(CAN_Type * base,uint8_t index,uint32_t ID);
+void  CAN_ConfigureRxMB(uint8_t index,uint32_t ID);
 
 
 /**
@@ -133,12 +152,12 @@ void  CAN_ConfigureRxMB(CAN_Type * base,uint8_t index,uint32_t ID);
  * @param index Number of message buffer.
  * @param config Pointer to struct containing MB Rx configuration
  */
-void CAN_EnableMbInterrupts	(CAN_Type * base, uint8_t index, CAN_MB_Callback callback);
+void CAN_EnableMbInterrupts	(uint8_t index, CAN_MB_Callback callback);
 
 /**
  *
  */
-CAN_Status CAN_ConfigureRxFifo(CAN_Type * base, CAN_FIFOConfig * config);
+CAN_Status CAN_ConfigureRxFifo(CAN_FIFOConfig * config);
 
 /**
  * @brief Sets the global mask for CAN message buffers during matching process.
@@ -147,8 +166,8 @@ CAN_Status CAN_ConfigureRxFifo(CAN_Type * base, CAN_FIFOConfig * config);
  * is disabled when calling CAN_Init().
  *
  */
-void CAN_SetRxMbGlobalMask	(CAN_Type *	base, uint32_t 	mask);
-void CAN_SetRxIndividualMask (CAN_Type *	base, uint8_t index, uint32_t 	mask);
+void CAN_SetRxMbGlobalMask	(uint32_t 	mask);
+void CAN_SetRxIndividualMask (uint8_t index, uint32_t 	mask);
 
 /**
  * @brief Poll the flag status of a message buffer.
@@ -156,14 +175,14 @@ void CAN_SetRxIndividualMask (CAN_Type *	base, uint8_t index, uint32_t 	mask);
  * @param index Number of message buffer.
  * @return True if a message was sent/received, false if not.
  */
-bool CAN_GetMbStatusFlag(CAN_Type * base,uint8_t index);
+bool CAN_GetMbStatusFlag(uint8_t index);
 
 /**
  * @brief Clear the interrupt flag of the indicated message buffer
  * @param base CAN peripheral base address
  * @param index Number of message buffer.
  */
-void CAN_ClearMbStatusFlag(CAN_Type * base,uint8_t index);
+void CAN_ClearMbStatusFlag(uint8_t index);
 
 
 /*
@@ -173,7 +192,7 @@ void CAN_ClearMbStatusFlag(CAN_Type * base,uint8_t index);
  * @param frame Pointer to frame to store received data.
  * @return
  */
-CAN_Status CAN_ReadRxMB(CAN_Type * base,uint8_t index, CAN_DataFrame * frame);
+CAN_Status CAN_ReadRxMB(uint8_t index, CAN_DataFrame * frame);
 
 /*
  * @brief Write a frame to a message buffer to be sent.
@@ -182,6 +201,6 @@ CAN_Status CAN_ReadRxMB(CAN_Type * base,uint8_t index, CAN_DataFrame * frame);
  * @param frame Pointer to frame to be sent.
  * @return
  */
-CAN_Status CAN_WriteTxMB(CAN_Type * base,uint8_t index, CAN_DataFrame * frame);
+CAN_Status CAN_WriteTxMB(uint8_t index, CAN_DataFrame * frame);
 
 #endif /* CAN_H_ */

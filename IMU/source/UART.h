@@ -1,13 +1,12 @@
-#ifndef UART_H_
-#define UART_H_
-
-
 /////////////////////////////////////////////////////////////////////////////////
-//                        Intertial Motion Unit (IMU)						   //
-//																			   //
+//                    	   TP2 -  Comunicaciones Serie                         //
 //          Grupo 3 - Laboratorio de Microprocesadores - ITBA - 2018           //
 //	                                                                           //
 /////////////////////////////////////////////////////////////////////////////////
+
+#ifndef UART_H_
+#define UART_H_
+
 
 /////////////////////////////////////////////////////////////////////////////////
 //                             Included header files                           //
@@ -16,7 +15,7 @@
 #include "MK64F12.h"
 #include "CircularBuffer.h"
 
-#define MEASURE_UART
+//#define MEASURE_UART
 #ifdef MEASURE_UART
 	#define MEASURE_UART_PORT PORTC
 	#define MEASURE_UART_GPIO GPIOC
